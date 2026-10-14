@@ -108,7 +108,7 @@ function AdminApp() {
     await api(importing ? '/admin/api/printers/import' : '/admin/api/printers', { method: 'POST', body: JSON.stringify(payload) }); close();
     toasts.show(importing ? 'Đã nhập queue nguyên trạng; CUPS chưa bị sửa.' : 'Đã tạo queue được quản lý; không xóa hay chiếm queue cũ.', 'success'); await loadPrinters(); if (!importing) await loadStatus();
   }} />;
-  if (modal?.kind === 'edit-printer') modalContent = <EditPrinter printer={modal.record} drivers={drivers} api={api} run={run} discover={discover} save={async payload => {
+  if (modal?.kind === 'edit-printer') modalContent = <EditPrinter printer={modal.record} drivers={drivers} run={run} discover={discover} save={async payload => {
     await api(`/admin/api/printers/${encodeURIComponent(modal.record.id)}`, { method: 'PUT', body: JSON.stringify(payload) }); close(); toasts.show('Đã lưu cấu hình máy in.', 'success'); await loadPrinters();
   }} />;
   if (modal?.kind.startsWith('details-')) modalContent = <EntityDetails kind={modal.kind.slice(8)} record={modal.record} printers={printers || []} />;

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-FIELDS = ("paper_size", "sides", "color_mode", "scaling")
+FIELDS = ("paper_size", "sides", "scaling")
 MAPPINGS = {
     "paper_size": {
         "PageSize": {v: v for v in ("A3", "A4", "A5", "A6", "Letter", "Legal", "Executive")}
@@ -13,10 +13,6 @@ MAPPINGS = {
             "DuplexNoTumble": "two-sided-long-edge",
             "DuplexTumble": "two-sided-short-edge",
         }
-    },
-    "color_mode": {
-        "ColorModel": {"Gray": "monochrome", "RGB": "color", "CMYK": "color"},
-        "ColorMode": {"Monochrome": "monochrome", "Color": "color"},
     },
     "scaling": {"print-scaling": {v: v for v in ("auto", "auto-fit", "fit", "fill", "none")}},
 }

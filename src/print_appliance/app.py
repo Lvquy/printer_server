@@ -324,7 +324,7 @@ def create_app(
         client: dict[str, str] = Depends(api_client),
     ) -> JSONResponse:
         if options is not None and any(v is not None for v in (paper_size, sides, color_mode, scaling)):
-            raise HTTPException(422, {"field": "options", "message": "Do not mix legacy and public fields."})
+            raise HTTPException(422, {"field": "options", "message": "Do not mix options JSON and individual print fields."})
         if not idempotency_key:
             raise HTTPException(422, "Idempotency-Key is required")
         try:
@@ -335,7 +335,6 @@ def create_app(
                 format_name=format,
                 title=title,
                 copies_raw=copies,
-                legacy_options=options is not None,
                 options_raw=options if options is not None else json.dumps({k: v for k, v in {
                     "paper_size": paper_size, "sides": sides,
                     "color_mode": color_mode, "scaling": scaling,

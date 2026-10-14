@@ -29,7 +29,10 @@ def test_public_options_ignore_old_allowlist_and_snapshot_native_values(harness)
 def test_invalid_field_and_zpl_do_not_accept_jobs(harness):
     auth = {"Authorization": f"Bearer {harness.key}", "Idempotency-Key": "bad-field"}
     for fields in (
-        {"options": "{}"},
+        {"options": "not-json"},
+        {"options": '{"PageSize":"A4"}'},
+        {"options": '{"scaling":"invalid"}'},
+        {"options": '{"paper_size":"A4"}', "paper_size": "A4"},
         {"paper_siz": "A4"},
         {"paper_size": ""},
         {"sides": "invalid"},
@@ -41,7 +44,6 @@ def test_invalid_field_and_zpl_do_not_accept_jobs(harness):
             files={"file": ("x.pdf", PDF, "application/pdf")},
         )
         assert result.status_code == 422
-        assert isinstance(result.json()["detail"], dict)
     result = harness.api.post(
         "/api/v1/jobs",
         headers=auth,
@@ -57,6 +59,19 @@ def test_invalid_field_and_zpl_do_not_accept_jobs(harness):
     assert harness.appliance.client_jobs(harness.client_id, 50) == []
 
 
+def test_scaling_in_options_payload_maps_to_cups(harness):
+    harness.backend.capability_data["options"].append(
+        {"name": "print-scaling", "default": "auto", "choices": [{"value": "auto"}, {"value": "fit"}]}
+    )
+    response = post_pdf(harness, harness.key, "pdf-scaling", options='{"scaling":"fit"}')
+    assert response.status_code == 202
+    with harness.appliance.db() as db:
+        snapshot = db.execute(
+            "SELECT snapshot_json FROM jobs WHERE id=?", (response.json()["job_id"],)
+        ).fetchone()[0]
+    assert '"print-scaling":"fit"' in snapshot
+
+
 def test_unknown_mapping_is_not_advertised():
     schema = {
         "availability": "partial",
@@ -69,7 +84,7 @@ def test_unknown_mapping_is_not_advertised():
         translate_options({"sides": "two-sided-long-edge"}, schema, {}, "pdf")
 
 
-def test_color_and_scaling_and_ambiguous_mapping():
+def test_only_simple_options_are_advertised_and_scaling_is_mapped():
     schema = {
         "availability": "available",
         "options": [
@@ -86,13 +101,11 @@ def test_color_and_scaling_and_ambiguous_mapping():
         ],
     }
     caps, _ = public_capabilities(schema, {}, ["pdf"])
-    assert caps["defaults"]["color_mode"] == "monochrome"
-    assert translate_options({"color_mode": "color", "scaling": "fit"}, schema, {}, "pdf") == {
-        "ColorModel": "RGB",
-        "print-scaling": "fit",
-    }
-    schema["options"][0]["choices"].append({"value": "CMYK"})
-    assert public_capabilities(schema, {}, ["pdf"])[0]["supported"]["color_mode"] == ["monochrome"]
+    assert set(caps["supported"]) == {"paper_size", "sides", "scaling"}
+    assert caps["supported"]["scaling"] == ["auto", "fit"]
+    assert translate_options({"scaling": "fit"}, schema, {}, "pdf") == {"print-scaling": "fit"}
+    with pytest.raises(InvalidPrintOption):
+        translate_options({"color_mode": "color"}, schema, {}, "pdf")
 
 
 def test_unavailable_and_stale_fail_without_acceptance(harness):

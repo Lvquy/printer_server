@@ -119,7 +119,7 @@ function ClientApp() {
     if (!captured) return;
     const body = new FormData();
     for (const key of ['printer_id', 'format', 'title', 'copies']) body.append(key, captured[key]);
-    for (const [name, value] of Object.entries(captured.options)) body.append(name, value);
+    if (Object.keys(captured.options).length) body.append('options', JSON.stringify(captured.options));
     body.append('file', captured.file, captured.file.name);
     try {
       const result = await request('/api/v1/jobs', { method: 'POST', headers: { 'Idempotency-Key': captured.id }, body });

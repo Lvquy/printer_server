@@ -4,18 +4,18 @@
 
 Có 5 endpoint: `GET /api/v1/printers`, `POST /api/v1/jobs`, `GET /api/v1/jobs`, `GET /api/v1/jobs/{job_id}`, `POST /api/v1/jobs/{job_id}/cancel`.
 
-Xem [request/response thực hành](technical-report.md#5-chuc-nang-va-tich-hop-api). Schema máy đọc được nằm trong `frontend/src/client-api.json`, được kiểm tra với response thật qua FakeCups.
+Xem [hướng dẫn tùy chọn hiện tại](print-options.md) và schema trong `frontend/src/client-api.json`, được kiểm tra với response qua FakeCups.
 
 - Bearer API key chỉ cho phép truy cập máy được cấp và lệnh của client.
 - Danh sách máy trả `capabilities` gồm `availability`, `reason`, `supported`, `defaults`. Không trả keyword/constraints driver cho client. Endpoint client capabilities riêng đã bỏ (404); endpoint quản trị giữ nguyên.
-- Multipart gửi in gồm `file`, `printer_id`, `format`, `title`; `copies` mặc định 1. Thêm `paper_size`, `sides`, `color_mode`, `scaling` nếu muốn tùy chỉnh PDF. Bỏ qua dùng mặc định, không cần gọi danh sách trước mỗi lần in.
-- Các tùy chọn phổ thông được chọn theo khả năng ánh xạ chắc chắn, không phụ thuộc allowlist driver cũ. Các giới hạn quyền truy cập máy vẫn giữ nguyên. Quản trị vẫn đặt mặc định driver.
+- Multipart gửi in gồm `file`, `printer_id`, `format`, `title`; `copies` mặc định 1. Thêm field `options` chứa JSON object với `paper_size`, `sides`, `scaling` nếu muốn tùy chỉnh PDF. Bỏ qua dùng mặc định, không cần gọi danh sách trước mỗi lần in. Ba field riêng lẻ tương ứng vẫn được nhận để tương thích client cũ; không trộn với `options`.
+- Ba tùy chọn PDF phổ thông được chọn theo khả năng ánh xạ chắc chắn, không phụ thuộc allowlist driver cũ. Các giới hạn quyền truy cập máy vẫn giữ nguyên. Giá trị bỏ qua dùng mặc định CUPS/driver.
 - Chỉ công bố enum ánh xạ chắc chắn từ descriptor driver; không đoán theo tên máy hoặc chỉ dựa vào IPP. `supported` rỗng không có nghĩa máy vật lý thiếu tính năng. `defaults` null nghĩa là chưa biểu diễn chắc chắn mặc định đó. Mảng từng field không chứng minh mọi tổ hợp đều hợp lệ.
 - Hệ thống kiểm tra tổ hợp với cấu hình hiệu lực, lưu snapshot keyword driver vào lệnh. Đổi cấu hình sau này không đổi snapshot cũ.
 - 422 cho field/giá trị/tổ hợp không hợp lệ; chi tiết có `field`, `message` và `allowed` khi là lỗi lựa chọn. Unknown/repeated/empty field bị từ chối. 503 khi không đọc được capability hoặc mapping thay đổi. Không tự hạ cấp tùy chọn.
 - ZPL gửi nguyên bản, không áp dụng các tùy chọn PDF.
 - `Idempotency-Key` bắt buộc; 202 là đã lưu bền vững, 200 là replay. Giữ nguyên file/tên file/mọi trường khi gửi lại. `unknown` cần đối soát, không tự in lại.
-- `options` cũ bị từ chối cho yêu cầu mới; chỉ cho replay đúng yêu cầu đã nhận từ trước, trước khi kiểm tra cấu hình hiện tại. Không trộn field mới và `options`. Client cũ cần nâng cấp đồng bộ.
+- `options` mới chỉ nhận ba tên phổ thông ở trên; keyword driver cũ bị từ chối cho yêu cầu mới. Replay đúng yêu cầu đã nhận từ trước vẫn được đối chiếu theo `Idempotency-Key` trước khi kiểm tra cấu hình hiện tại.
 - GET jobs nhận `limit` (mặc định 50, kẹp 1–100), GET chi tiết trả events. Poll 3–5 giây. Hủy không thu hồi giấy và HTTP 200 không luôn là canceled.
 - Các lỗi khác: 401 key sai, 403 máy chưa cấp, 404 lệnh không thuộc client, 409 mã trùng nhưng nội dung khác, 413 file lớn, 429 đầy hàng đợi, 507 thiếu đĩa.
 

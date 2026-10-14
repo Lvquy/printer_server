@@ -312,7 +312,6 @@ class Appliance:
         options_raw: str,
         filename: str,
         upload: Any,
-        legacy_options: bool = False,
     ) -> tuple[dict[str, Any], int]:
         if not KEY_RE.fullmatch(idempotency_key):
             raise ValueError("invalid_idempotency_key")
@@ -355,9 +354,6 @@ class Appliance:
             existing = self._existing_idempotency(db, client_id, idempotency_key, request_digest)
             if existing is not None:
                 return existing, 200
-            if legacy_options:
-                raise InvalidPrintOption("options", None, [], "Legacy options removed. Use paper_size, sides, color_mode and scaling for new requests.")
-
             try:
                 parsed_options = json.loads(options_raw)
                 copies = int(copies_raw)

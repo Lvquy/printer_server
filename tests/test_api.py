@@ -26,7 +26,7 @@ def post_pdf(harness: Harness, key: str, idem: str, *, content: bytes = PDF, opt
             "format": "pdf",
             "title": "Test invoice",
             "copies": "1",
-            **json.loads(options),
+            **({"options": options} if json.loads(options) else {}),
         },
         files={"file": ("invoice.pdf", content, "application/pdf")},
     )

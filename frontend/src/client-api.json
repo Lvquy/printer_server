@@ -80,12 +80,6 @@
                 "type": "string"
               }
             },
-            "color_mode": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
             "scaling": {
               "type": "array",
               "items": {
@@ -96,7 +90,6 @@
           "required": [
             "paper_size",
             "sides",
-            "color_mode",
             "scaling"
           ]
         },
@@ -115,12 +108,6 @@
                 "null"
               ]
             },
-            "color_mode": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
             "scaling": {
               "type": [
                 "string",
@@ -131,7 +118,6 @@
           "required": [
             "paper_size",
             "sides",
-            "color_mode",
             "scaling"
           ]
         }
@@ -171,21 +157,9 @@
           "default": "1",
           "description": "Chuỗi số nguyên 1–100 trong multipart."
         },
-        "paper_size": {
+        "options": {
           "type": "string",
-          "description": "Tùy chọn PDF; lấy giá trị từ capabilities.supported."
-        },
-        "sides": {
-          "type": "string",
-          "description": "Tùy chọn PDF; lấy giá trị từ capabilities.supported."
-        },
-        "color_mode": {
-          "type": "string",
-          "description": "Tùy chọn PDF; lấy giá trị từ capabilities.supported."
-        },
-        "scaling": {
-          "type": "string",
-          "description": "Tùy chọn PDF; lấy giá trị từ capabilities.supported."
+          "description": "JSON object với paper_size, sides, scaling; chỉ gửi giá trị máy công bố trong capabilities.supported."
         }
       },
       "required": [
@@ -409,9 +383,6 @@
                     "one-sided",
                     "two-sided-long-edge"
                   ],
-                  "color_mode": [
-                    "monochrome"
-                  ],
                   "scaling": [
                     "auto",
                     "fit"
@@ -420,7 +391,6 @@
                 "defaults": {
                   "paper_size": "A4",
                   "sides": "one-sided",
-                  "color_mode": "monochrome",
                   "scaling": "auto"
                 }
               }
@@ -440,7 +410,7 @@
       "method": "POST",
       "path": "/api/v1/jobs",
       "title": "Gửi yêu cầu in",
-      "description": "multipart/form-data, không phải JSON body. Lệnh mới chỉ trả 202 sau khi được lưu bền vững. Có thể in ra giấy thật. Không gọi chỉ để kiểm tra kết nối. Tùy chọn PDF: paper_size, sides, color_mode, scaling. Bỏ qua để dùng mặc định. Field options cũ bị từ chối 422.",
+      "description": "multipart/form-data, không phải JSON body. Lệnh mới chỉ trả 202 sau khi được lưu bền vững. Có thể in ra giấy thật. Không gọi chỉ để kiểm tra kết nối. Tùy chọn PDF đặt trong field options dạng JSON object: paper_size, sides, scaling. Bỏ qua để dùng mặc định. Các tên tùy chọn driver cũ bị từ chối 422.",
       "parameters": [
         {
           "name": "Idempotency-Key",

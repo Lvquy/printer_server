@@ -1,8 +1,8 @@
 import React from 'react';
 import { Select } from './shared.jsx';
 
-const labels = { paper_size: 'Khổ giấy', sides: 'Một / hai mặt', color_mode: 'Màu', scaling: 'Tỷ lệ PDF' };
-const values = { 'one-sided': 'Một mặt', 'two-sided-long-edge': 'Hai mặt cạnh dài', 'two-sided-short-edge': 'Hai mặt cạnh ngắn', monochrome: 'Trắng đen', color: 'Màu', auto: 'Tự động', 'auto-fit': 'Tự động vừa trang', fit: 'Vừa vùng in', fill: 'Lấp đầy (có thể cắt mép)', none: 'Giữ nguyên tỷ lệ' };
+const labels = { paper_size: 'Khổ giấy', sides: 'Một / hai mặt', scaling: 'Tỷ lệ PDF' };
+const values = { 'one-sided': 'Một mặt', 'two-sided-long-edge': 'Hai mặt cạnh dài', 'two-sided-short-edge': 'Hai mặt cạnh ngắn', auto: 'Tự động', 'auto-fit': 'Tự động vừa trang', fit: 'Vừa vùng in', fill: 'Lấp đầy (có thể cắt mép)', none: 'Giữ nguyên kích thước (có thể cắt mép)' };
 export const initialOptions = () => ({ values: {} });
 export const usableSchema = schema => ['available', 'partial'].includes(schema?.availability);
 export const optionsPayload = (schema, model, config) => ({ options: config.format === 'zpl' ? {} : { ...model.values } });

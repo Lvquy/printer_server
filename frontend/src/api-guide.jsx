@@ -17,6 +17,7 @@ export function curlExample(endpoint, format = 'pdf') {
   if (endpoint.id === 'submit') lines.push(
     '  -H "Idempotency-Key: ${REQUEST_ID:?Tao REQUEST_ID mot lan cho yeu cau moi}"',
     '  -F "printer_id=${PRINTER_ID}"', `  -F 'format=${format}'`, "  -F 'title=Invoice example'", "  -F 'copies=1'",
+    ...(format === 'pdf' ? ["  -F 'options={\"scaling\":\"fit\"}'"] : []),
     `  -F 'file=@./${format === 'pdf' ? 'invoice.pdf;type=application/pdf' : 'label.zpl;type=text/plain'}'`,
   );
   return lines.join(' \\\n');
@@ -42,7 +43,7 @@ function CodeBlock({ title, text, notice, disabled = false, fullHeight = false }
 }
 function Fields({ endpoint }) {
   const fields = endpoint.bodySchema ? contract.$defs[endpoint.bodySchema].properties : {};
-  const hints = { file: 'File PDF hoặc ZPL UTF-8; giới hạn theo thiết bị.', printer_id: 'PRINTER_ID từ bước Chọn máy in.', format: 'pdf hoặc zpl; máy phải hỗ trợ định dạng này.', title: 'Tiêu đề 1–128 ký tự sau khi bỏ khoảng trắng đầu/cuối.', copies: '1–100. Mặc định: 1.', paper_size: 'Khổ giấy, ví dụ A4. Bỏ qua để dùng mặc định.', sides: 'one-sided, two-sided-long-edge hoặc two-sided-short-edge nếu máy hỗ trợ.', color_mode: 'monochrome hoặc color nếu máy hỗ trợ.', scaling: 'Tỷ lệ PDF: lấy từ capabilities.supported.scaling.' };
+  const hints = { file: 'File PDF hoặc ZPL UTF-8; giới hạn theo thiết bị.', printer_id: 'PRINTER_ID từ bước Chọn máy in.', format: 'pdf hoặc zpl; máy phải hỗ trợ định dạng này.', title: 'Tiêu đề 1–128 ký tự sau khi bỏ khoảng trắng đầu/cuối.', copies: '1–100. Mặc định: 1.', options: 'JSON object của PDF, ví dụ {\"paper_size\":\"A4\",\"sides\":\"one-sided\",\"scaling\":\"fit\"}; chỉ dùng giá trị từ capabilities.supported.' };
   const rows = [
     ...endpoint.parameters.map(field => ({ ...field, hint: field.description })),
     ...Object.entries(fields).map(([name, field]) => ({ name, in: 'form', required: contract.$defs[endpoint.bodySchema].required.includes(name), hint: hints[name] || field.description })),

@@ -52,14 +52,10 @@ const job = { job_id: 'job-one', title: '<img src="https://invalid.example/">', 
     await page.getByRole('tab', { name: 'Cấu hình', exact: true }).click(); assert.equal(await page.locator('[name="max_pending_jobs"]').inputValue(), '777');
     await page.locator('#settings-form button[type="submit"]').click(); await idle(); assert.equal(writes.at(-1).body.max_pending_jobs, 777);
     await page.getByRole('tab', { name: 'Máy in', exact: true }).click(); const edit = page.locator('#printers').getByRole('button', { name: 'Sửa cấu hình' });
-    await edit.click(); await modal.locator('.option-common select').waitFor(); await modal.locator('.option-common select').selectOption('A5');
-    await modal.getByRole('button', { name: 'Lưu cấu hình', exact: true }).click(); await idle();
-    assert.deepEqual(writes.at(-1).body.default_options, { Vendor: 'opaque', PageSize: 'A5' });
-    assert.deepEqual(writes.at(-1).body.allowed_options, { Vendor: ['opaque', 'other'], PageSize: ['A4', 'A5'] });
-    await edit.click(); await modal.locator('.option-common select').waitFor(); await modal.getByRole('checkbox', { name: 'Xóa các giá trị cũ không còn trong schema khi lưu' }).check();
-    await modal.locator('.option-common select').selectOption('A4'); await modal.getByRole('button', { name: 'Lưu cấu hình', exact: true }).click(); await idle();
-    assert.deepEqual(writes.at(-1).body.default_options, { PageSize: 'A4' }); assert.deepEqual(writes.at(-1).body.allowed_options, { PageSize: ['A4', 'A5'] });
-    await edit.click(); await modal.locator('.option-common select').waitFor(); await modal.locator('#edit-uri-p-one').fill('socket://192.0.2.22:9100');
+    await edit.click(); assert.equal(await modal.locator('.printer-schema, .option-common, .option-rights').count(), 0);
+    await modal.locator('#edit-name-p-one').fill('Đổi tên'); await modal.getByRole('button', { name: 'Lưu cấu hình', exact: true }).click(); await idle();
+    assert.deepEqual(writes.at(-1).body, { name: 'Đổi tên' });
+    await edit.click(); await modal.locator('#edit-uri-p-one').fill('socket://192.0.2.22:9100');
     approve = false; const before = writes.length; await modal.getByRole('button', { name: 'Lưu cấu hình', exact: true }).click(); await idle(); assert.equal(writes.length, before);
     approve = true; await modal.getByRole('button', { name: 'Lưu cấu hình', exact: true }).click(); await idle();
     assert.deepEqual(writes.at(-1).body.default_options, {}); assert.deepEqual(writes.at(-1).body.allowed_options, {}); assert.equal(writes.at(-1).body.device_uri, 'socket://192.0.2.22:9100');
@@ -74,6 +70,6 @@ const job = { job_id: 'job-one', title: '<img src="https://invalid.example/">', 
     expire = true; await page.locator('#refresh').click(); await idle(); assert.equal(await page.locator('#dashboard').isVisible(), false); await page.waitForTimeout(450);
     assert.equal(await page.locator('#printers article, #clients article, #jobs tbody tr').count(), 0); assert.equal(await modal.count(), 0); assert.equal(await page.locator('#password').inputValue(), '');
     assert.deepEqual(errors, []); assert.deepEqual(external, []);
-    console.log('PASS: React admin auth/CSRF; dirty settings refresh; legacy defaults/rights preservation and explicit removal; remap confirmation/reset; unknown resolve/manual resume/cancel; focus restoration; 401 invalidation rejects stale data. All APIs mocked.');
+    console.log('PASS: React admin auth/CSRF; dirty settings refresh; simple printer edit; remap confirmation/reset; unknown resolve/manual resume/cancel; focus restoration; 401 invalidation rejects stale data. All APIs mocked.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

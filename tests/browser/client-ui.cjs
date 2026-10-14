@@ -49,7 +49,7 @@ const credential=crypto.randomBytes(32).toString('hex');
   await page.locator('#retry-print').click();await idle();assert.equal(seen.size,1);assert.equal(writes[1].id,writes[0].id);
   // Multipart boundaries differ, but submitted fields/file must remain identical on retry.
   for(const write of writes)for(const value of ['sample.pdf','%PDF-1.7','p-one','In thử'])assert.ok(write.body.includes(value));
-  assert.ok(writes[0].body.includes('A5')&&writes[1].body.includes('A5'));assert.equal(await page.locator('#uncertain-request').isVisible(),false);assert.match(await page.locator('#client-notice').textContent(),/không tạo lệnh trùng/);
+  assert.ok(writes[0].body.includes('name="options"')&&writes[0].body.includes('A5')&&writes[1].body.includes('A5'));assert.equal(await page.locator('#uncertain-request').isVisible(),false);assert.match(await page.locator('#client-notice').textContent(),/không tạo lệnh trùng/);
   assert.equal(await page.locator('#client-file').inputValue(),'');assert.equal(await page.locator('#client-jobs article').count(),1);
   await file('label.zpl');assert.equal(await page.locator('#client-format').inputValue(),'zpl');
   await page.locator('#client-format').selectOption('zpl');assert.equal(await page.locator('#options-state').textContent(), 'ZPL gửi nguyên bản; tùy chọn driver PDF không áp dụng.');

@@ -66,8 +66,8 @@ const taskNames = { printers: 'Chọn máy in', submit: 'Gửi file', job: 'Theo
     }
     await page.locator('.api-task').filter({ hasText: taskNames.submit }).click();
     const submit = page.locator('.api-endpoint'), curl = submit.locator('pre[aria-label="cURL POST /api/v1/jobs"]');
-    assert.equal(await submit.locator('.api-field').count(), 10);
-    for (const name of ['file', 'printer_id', 'format', 'title', 'copies', 'paper_size', 'sides', 'color_mode', 'scaling', 'Idempotency-Key']) assert.ok((await submit.locator('.api-field-list').textContent()).includes(name));
+    assert.equal(await submit.locator('.api-field').count(), 7);
+    for (const name of ['file', 'printer_id', 'format', 'title', 'copies', 'options', 'Idempotency-Key']) assert.ok((await submit.locator('.api-field-list').textContent()).includes(name));
     assert.match(await submit.textContent(), /multipart\/form-data/); assert.match(await submit.textContent(), /có thể in thật/);
     await submit.getByLabel('Định dạng ví dụ').selectOption('zpl'); assert.match(await curl.textContent(), /format=zpl/); assert.match(await curl.textContent(), /label.zpl/);
     assert.equal(spawnSync('bash', ['-n'], { input: await curl.textContent(), encoding: 'utf8' }).status, 0);
@@ -123,12 +123,12 @@ const taskNames = { printers: 'Chọn máy in', submit: 'Gửi file', job: 'Theo
     mobile.on('pageerror', error => errors.push(error.message)); await mobile.route('**/*', handler);
     await mobile.goto(base + '/client#api-guide'); await mobile.locator('.api-task').filter({ hasText: taskNames.submit }).click();
     assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    assert.equal(await mobile.getByRole('button', { name: 'Tham số request · 10', exact: false }).getAttribute('aria-expanded'), 'false');
+    assert.equal(await mobile.getByRole('button', { name: 'Tham số request · 7', exact: false }).getAttribute('aria-expanded'), 'false');
     assert.ok((await mobile.locator('.api-content').boundingBox()).y < 100, 'Mobile task selection scrolls to the request');
     await save(mobile, 'api-guide-mobile.png');
-    await mobile.getByRole('button', { name: 'Tham số request · 10', exact: false }).click();
-    assert.equal(await mobile.locator('.api-field:visible').count(), 10);
-    await mobile.getByRole('button', { name: 'Tham số request · 10', exact: false }).click();
+    await mobile.getByRole('button', { name: 'Tham số request · 7', exact: false }).click();
+    assert.equal(await mobile.locator('.api-field:visible').count(), 7);
+    await mobile.getByRole('button', { name: 'Tham số request · 7', exact: false }).click();
     await mobile.locator('.api-setup > summary').click(); await mobile.locator('.api-endpoint').getByText('Schema & chi tiết kỹ thuật', { exact: true }).click();
     await mobile.locator('.api-endpoint').getByText('Mã lỗi ·', { exact: false }).click(); assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.equal(reads, clientBefore, 'Client guide never calls admin APIs');
