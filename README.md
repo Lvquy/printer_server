@@ -16,6 +16,30 @@ Mật khẩu web ban đầu: `admin12345678` — đổi ngay tại **Cấu hình
 Chỉ dùng HTTP trong LAN tin cậy. Script từ chối bản cài có sẵn; không dùng để cập nhật.
 Driver máy in cài riêng. Xem hướng dẫn triển khai ở trên để biết yêu cầu và kiểm tra.
 
+### Cài bản thứ hai song song qua SSH
+
+Trên máy đã chạy `print-appliance.service` ở cổng 8081, chuyển một checkout sạch
+của repo này sang Pi rồi chạy qua SSH:
+
+```sh
+ssh pi@DEVICE_IP
+cd /path/to/printer_server
+sudo ./install-secondary.sh --host DEVICE_IP --port 8082 --check
+sudo ./install-secondary.sh --host DEVICE_IP --port 8082
+sudo systemctl start print-appliance-secondary.service
+```
+
+Thay `DEVICE_IP` bằng IPv4 thực được gán trên Pi. `--check` chỉ kiểm tra; lệnh
+cài đặt hỏi xác nhận và chỉ chấp nhận một bản cài mới. Bản thứ hai dùng service
+`print-appliance-secondary`, tài khoản cùng tên, mã nguồn ở
+`/opt/print-appliance-secondary` và dữ liệu ở `/var/lib/print-appliance-secondary`.
+Script không sửa service/dữ liệu cổng 8081, không tạo hoặc import hàng đợi CUPS,
+và không gửi lệnh in. Nó tạo mật khẩu quản trị web riêng và hiển thị một lần.
+Hãy lưu mật khẩu đó, đăng nhập rồi đổi tại **Cấu hình → Đổi mật khẩu quản trị**.
+Để kiểm tra hai bản: `systemctl status print-appliance.service
+print-appliance-secondary.service` và `ss -ltn '( sport = :8081 or sport = :8082 )'`.
+Không import cùng một hàng đợi đang do bản 8081 quản lý vào bản mới.
+
 
 A local, single-node print appliance using FastAPI, SQLite, a durable file spool and the system's **real CUPS service**. It is a new service on port 8081 by default; it does not interact with or replace `pi-print-gateway` on 8080. Odoo and other applications are clients, not dependencies of this service.
 
