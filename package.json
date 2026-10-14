@@ -1,0 +1,15 @@
+{
+  "name": "print-appliance-ui",
+  "private": true,
+  "version": "0.1.5",
+  "description": "Offline React UI build for the print appliance",
+  "scripts": {
+    "build": "node frontend/scripts/build.mjs",
+    "build:check": "node frontend/scripts/build.mjs --check"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}

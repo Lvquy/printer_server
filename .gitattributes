@@ -1,0 +1,2 @@
+# Preserve PDF stream bytes on Windows; text line-ending conversion corrupts PDFs.
+*.pdf binary

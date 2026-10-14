@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Triển khai Print Appliance trên Debian 12: cài đặt từng bước, cấu hình máy in, tích hợp API và vận hành.">
+<title>Print Appliance — Hướng dẫn triển khai và sử dụng</title><style>
+:root{color-scheme:light;--ink:#202832;--muted:#53616f;--line:#d9e1e8;--accent:#145a73}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f3f6f8;color:var(--ink);font:16px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}
+.shell{max-width:1140px;margin:auto;padding:40px 42px 64px;background:white;min-height:100vh}
+.report-bar{font-size:13px;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:28px;display:flex;gap:16px;flex-wrap:wrap}
+h1,h2,h3,h4{line-height:1.3;scroll-margin-top:20px}h1{font-size:34px;letter-spacing:-.6px;margin-bottom:14px}h2{font-size:25px;margin:48px 0 18px;border-top:1px solid var(--line);padding-top:24px}h3{font-size:20px;margin-top:30px}h4{font-size:17px}
+p,ul,ol{margin:12px 0}li{margin:5px 0}a{color:var(--accent);text-underline-offset:3px;overflow-wrap:anywhere}strong{font-weight:650}
+code{font:13px/1.65 ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;background:#edf2f5;padding:2px 4px;border-radius:3px;overflow-wrap:anywhere}
+pre{border:1px solid var(--line);background:#f5f7f9;border-radius:7px;padding:15px 18px;overflow-x:auto;margin:18px 0;max-width:100%}pre code{background:none;padding:0;border-radius:0;white-space:pre;overflow-wrap:normal}
+blockquote{margin:20px 0;padding:8px 20px;border-left:4px solid #b88728;background:#fff8e8}blockquote p{margin:6px 0}
+table{border-collapse:collapse;width:100%;margin:20px 0;font-size:14px;table-layout:fixed}th,td{text-align:left;vertical-align:top;border:1px solid var(--line);padding:10px 12px;overflow-wrap:anywhere}th{background:#edf2f5;font-weight:650}tr:nth-child(even){background:#fafcfd}td code,th code{font-size:12px}
+.toc{margin:30px 0;padding:16px 22px;background:#edf4f7;border:1px solid var(--line);border-radius:8px}.toc::before{content:none;display:block;font-weight:650;font-size:20px;margin-bottom:12px}.toc>ul{columns:1;column-gap:36px;padding-left:22px}.toc li{break-inside:avoid}.toc li li{font-size:13px}.toc a{text-decoration:none;display:flex;align-items:baseline;gap:12px}.toc a>span:first-child{flex:1}.toc a:hover{text-decoration:underline}
+.report-cover{padding:24px 0 42px}.report-cover h1{font-size:42px;max-width:850px}.report-cover>p:first-of-type{font-size:22px;color:var(--accent)}.report-cover ul{list-style:none;padding:20px 24px;border:1px solid var(--line);border-radius:8px}.front-title{margin-top:40px}.figure-list,.table-list,.index-list{padding:8px 22px}.figure-list a,.table-list a{display:flex;align-items:baseline;gap:12px}.figure-list a>span:first-child,.table-list a>span:first-child{flex:1}.page-reference{display:inline-block;min-width:2.5em;flex-shrink:0;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}.index-list .page-reference{min-width:0;margin-left:4px}.index-list .page-reference::before{content:"tr. ";font-size:inherit}.table-caption{font-weight:650;font-size:14px;break-after:avoid;margin:24px 0 8px}.report-table table{margin-top:0}.report-table{break-inside:auto}
+.report-end{border-top:1px solid var(--line);margin-top:44px;padding-top:16px;color:var(--muted);font-size:13px}
+.report-diagram{margin:28px 0;break-inside:avoid;break-after:avoid}.diagram-viewport{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:white}.diagram-viewport:focus-visible{outline:3px solid var(--accent);outline-offset:3px}.diagram-viewport svg{display:block;width:100%;min-width:720px;max-width:920px;height:auto;margin:auto}.diagram-hint{display:none;margin-top:7px;color:var(--muted);font-size:12px}figure+p:has(>em:only-child){margin-top:-16px;color:var(--muted);font-size:14px}
+@media(max-width:720px){.report-cover h1{font-size:28px}.report-cover>p:first-of-type{font-size:18px}.report-cover ul{padding:14px}.figure-list,.table-list,.index-list{padding:0}.diagram-hint{display:block}.shell{padding:24px 18px 40px}body{font-size:15px}h1{font-size:27px}h2{font-size:22px}.toc>ul{columns:1}th,td{padding:7px;font-size:12px}pre{padding:12px}}
+@page{size:A4;margin:16mm 14mm 18mm}
+@media print{.index-list{font-size:9pt}.index-list li{margin:2pt 0;line-height:1.3}.report-bar{display:none}.report-cover{min-height:230mm;padding:24mm 0 0;break-after:page}.report-cover h1{font-size:30pt}.report-cover>p:first-of-type{font-size:15pt}.report-cover ul{padding:14pt;font-size:11pt}.front-title,h2{break-before:auto}.page-reference{font-size:8pt}.table-caption{font-size:9pt}.figure-list,.table-list,.index-list{padding:0}.diagram-viewport{overflow:visible;border:none}.diagram-viewport svg{min-width:0;max-width:100%}.diagram-hint{display:none}figure+p:has(>em:only-child){font-size:9pt}body{background:white;font-size:10pt;line-height:1.45}.shell{padding:0;max-width:none}.report-bar{font-size:8pt}h1{font-size:24pt}h2{font-size:17pt;margin-top:26pt;padding-top:12pt}h3{font-size:13pt}h1,h2,h3,h4{break-after:avoid}p,li{orphans:3;widows:3}pre{font-size:8pt;padding:8pt;overflow:visible;break-inside:avoid}pre code{font-size:8pt;white-space:pre-wrap;overflow-wrap:anywhere}table{font-size:8.5pt;table-layout:fixed;break-inside:avoid}thead{display:table-header-group}tr{break-inside:avoid}th,td{padding:5pt}td code,th code{font-size:8pt}a{color:inherit}.toc{background:white;margin:12pt 0;padding:6pt 12pt}.toc li{margin:2pt 0}.report-diagram{margin:12pt 0;break-after:auto}.toc>ul{columns:1}.toc li li{font-size:8pt}.report-end{font-size:8pt}blockquote{background:white}html{scroll-behavior:auto}}
+</style></head>
+<body><div class="shell"><header class="report-bar"><span>PRINT APPLIANCE · HƯỚNG DẪN</span><span>Tài liệu 1.4 · Tiếng Việt</span></header>
+<main><h1 id="print-appliance-huong-dan-trien-khai-va-su-dung">Print Appliance — Hướng dẫn triển khai và sử dụng</h1>
+<p>Tài liệu dành cho kỹ thuật viên cài mới Print Appliance trên thiết bị đã có Debian 12, kết nối mạng và SSH. Quy trình đi từ cài phần mềm đến cấu hình máy in, in thử và tích hợp ứng dụng.</p>
+<h2 id="table-of-contents" class="front-title">Mục lục</h2>
+
+<nav class="toc" aria-labelledby="table-of-contents">
+<ul>
+<li><a href="#1-kien-truc-va-luong-in"><span>1. Kiến trúc và luồng in</span><span class="page-reference" data-page-target="1-kien-truc-va-luong-in" title="Trang trong bản PDF chuẩn">1</span></a></li>
+<li><a href="#2-yeu-cau-truoc-khi-trien-khai"><span>2. Yêu cầu trước khi triển khai</span><span class="page-reference" data-page-target="2-yeu-cau-truoc-khi-trien-khai" title="Trang trong bản PDF chuẩn">2</span></a></li>
+<li><a href="#3-cai-phan-mem-tren-thiet-bi"><span>3. Cài phần mềm trên thiết bị</span><span class="page-reference" data-page-target="3-cai-phan-mem-tren-thiet-bi" title="Trang trong bản PDF chuẩn">3</span></a></li>
+<li><a href="#4-cau-hinh-may-in-va-kiem-tra-in-thu"><span>4. Cấu hình máy in và kiểm tra in thử</span><span class="page-reference" data-page-target="4-cau-hinh-may-in-va-kiem-tra-in-thu" title="Trang trong bản PDF chuẩn">5</span></a></li>
+<li><a href="#5-chuc-nang-va-tich-hop-api"><span>5. Chức năng và tích hợp API</span><span class="page-reference" data-page-target="5-chuc-nang-va-tich-hop-api" title="Trang trong bản PDF chuẩn">7</span></a></li>
+<li><a href="#6-van-hanh-va-xu-ly-loi-co-ban"><span>6. Vận hành và xử lý lỗi cơ bản</span><span class="page-reference" data-page-target="6-van-hanh-va-xu-ly-loi-co-ban" title="Trang trong bản PDF chuẩn">12</span></a></li>
+</ul>
+</nav>
+
+<h2 id="1-kien-truc-va-luong-in">1. Kiến trúc và luồng in</h2>
+<p>Print Appliance chạy trên một thiết bị Linux trong mạng nội bộ. Ứng dụng gửi file tới thiết bị; người quản trị dùng trình duyệt để quản lý máy in, quyền truy cập và các lệnh đã nhận.</p>
+<ul>
+<li><strong>Print Appliance</strong> xác thực yêu cầu, lưu file và lệnh in, điều phối hàng đợi và theo dõi kết quả.</li>
+<li><strong>CUPS</strong> là hệ thống in trên Linux, quản lý driver và truyền dữ liệu tới máy in. Driver là phần mềm xử lý dữ liệu phù hợp với từng loại máy.</li>
+<li><strong>Client</strong> là ứng dụng được cấp khóa truy cập, có thể gửi file qua API hoặc trang web <code>/client</code>. API là giao diện để phần mềm khác gọi chức năng của Print Appliance.</li>
+</ul>
+<figure class="report-diagram"><div class="diagram-viewport" tabindex="0" aria-label="Sơ đồ kết nối Print Appliance với ứng dụng và máy in"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 635" width="920" height="635" role="img" aria-labelledby="connection-title connection-desc" font-family="system-ui, -apple-system, Segoe UI, sans-serif">
+<title id="connection-title">Sơ đồ kết nối</title>
+<desc id="connection-desc">Ứng dụng và quản trị kết nối qua LAN tới EDATEC. Print Appliance gọi CUPS nội bộ; CUPS dùng driver để gửi dữ liệu tới máy in USB hoặc LAN.</desc>
+<defs><marker id="connection-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#617687" /></marker></defs>
+<rect width="920" height="100%" rx="16" fill="#fff" />
+<rect x="200" y="165" width="520" height="275" rx="12" fill="#f3f6f9" stroke="#c9d4df" stroke-width="1.5" />
+<polyline points="220,110 220,145 350,145 350,215" fill="none" stroke="#617687" stroke-width="1.8" marker-end="url(#connection-arrow)" />
+<polyline points="700,110 700,145 570,145 570,215" fill="none" stroke="#617687" stroke-width="1.8" marker-end="url(#connection-arrow)" />
+<polyline points="460,285 460,335" fill="none" stroke="#617687" stroke-width="1.8" marker-end="url(#connection-arrow)" />
+<polyline points="350,405 350,455 210,455 210,495" fill="none" stroke="#617687" stroke-width="1.8" marker-end="url(#connection-arrow)" />
+<polyline points="570,405 570,455 710,455 710,495" fill="none" stroke="#617687" stroke-width="1.8" marker-end="url(#connection-arrow)" />
+<text x="460" y="195" fill="#243849" font-size="17" font-weight="650" text-anchor="middle"><tspan x="460" dy="0">Thiết bị quản lý in</tspan></text>
+<g data-box="true"><rect x="20" y="20" width="400" height="90" rx="12" fill="#edf5fb" stroke="#8cb6d2" stroke-width="1.5" /><text x="220" y="59" fill="#174d71" font-size="17" font-weight="650" text-anchor="middle"><tspan x="220" dy="0">Máy tính / ứng dụng</tspan></text><text x="220" y="87" fill="#174d71" font-size="16" font-weight="400" text-anchor="middle"><tspan x="220" dy="0">Gửi tài liệu cần in</tspan></text></g>
+<g data-box="true"><rect x="500" y="20" width="400" height="90" rx="12" fill="#edf5fb" stroke="#8cb6d2" stroke-width="1.5" /><text x="700" y="59" fill="#174d71" font-size="17" font-weight="650" text-anchor="middle"><tspan x="700" dy="0">Người quản trị</tspan></text><text x="700" y="87" fill="#174d71" font-size="16" font-weight="400" text-anchor="middle"><tspan x="700" dy="0">Dùng trình duyệt web</tspan></text></g>
+<g data-box="true"><rect x="230" y="215" width="460" height="70" rx="12" fill="#edf7f2" stroke="#90bba4" stroke-width="1.5" /><text x="460" y="244" fill="#245c43" font-size="17" font-weight="650" text-anchor="middle"><tspan x="460" dy="0">Print Appliance</tspan></text><text x="460" y="272" fill="#245c43" font-size="16" font-weight="400" text-anchor="middle"><tspan x="460" dy="0">Nhận và theo dõi lệnh in</tspan></text></g>
+<g data-box="true"><rect x="230" y="335" width="460" height="70" rx="12" fill="#edf5fb" stroke="#8cb6d2" stroke-width="1.5" /><text x="460" y="364" fill="#174d71" font-size="17" font-weight="650" text-anchor="middle"><tspan x="460" dy="0">CUPS + driver</tspan></text><text x="460" y="392" fill="#174d71" font-size="16" font-weight="400" text-anchor="middle"><tspan x="460" dy="0">Chuyển tài liệu tới máy in</tspan></text></g>
+<g data-box="true"><rect x="40" y="495" width="340" height="85" rx="12" fill="#f3f6f9" stroke="#c9d4df" stroke-width="1.5" /><text x="210" y="531" fill="#243849" font-size="17" font-weight="650" text-anchor="middle"><tspan x="210" dy="0">Máy in USB</tspan></text><text x="210" y="559" fill="#243849" font-size="16" font-weight="400" text-anchor="middle"><tspan x="210" dy="0">Nối trực tiếp bằng cáp USB</tspan></text></g>
+<g data-box="true"><rect x="540" y="495" width="340" height="85" rx="12" fill="#f3f6f9" stroke="#c9d4df" stroke-width="1.5" /><text x="710" y="531" fill="#243849" font-size="17" font-weight="650" text-anchor="middle"><tspan x="710" dy="0">Máy in mạng</tspan></text><text x="710" y="559" fill="#243849" font-size="16" font-weight="400" text-anchor="middle"><tspan x="710" dy="0">Kết nối cùng mạng nội bộ</tspan></text></g>
+<text x="460" y="145" fill="#243849" font-size="15" font-weight="400" text-anchor="middle"><tspan x="460" dy="0">Web / API qua mạng</tspan></text>
+<text x="570" y="317" fill="#243849" font-size="15" font-weight="400" text-anchor="middle"><tspan x="570" dy="0">Kết nối nội bộ</tspan></text>
+<text x="210" y="478" fill="#243849" font-size="15" font-weight="400" text-anchor="middle"><tspan x="210" dy="0">USB</tspan></text>
+<text x="710" y="478" fill="#243849" font-size="15" font-weight="400" text-anchor="middle"><tspan x="710" dy="0">LAN</tspan></text>
+<text x="460" y="615" fill="#53616f" font-size="15" font-weight="400" text-anchor="middle"><tspan x="460" dy="0">Thiết bị nhận lệnh; máy in tạo bản in trên giấy</tspan></text>
+</svg></div><span class="diagram-hint">Màn hình nhỏ: vuốt ngang trong sơ đồ; dùng phím mũi tên khi vùng sơ đồ có focus.</span></figure>
+<p>Máy in nối qua USB hoặc mạng LAN. CUPS chạy cùng thiết bị với Print Appliance; không cần máy chủ CUPS riêng. Odoo có thể là một client, không phải thành phần bắt buộc.</p>
+<p>Lệnh và file được lưu trên thiết bị trước khi báo đã nhận. Trạng thái hoàn thành do CUPS báo không bảo đảm giấy đã ra; lệnh chưa rõ kết quả cần kiểm tra thủ công, không tự in lại.</p>
+<h2 id="2-yeu-cau-truoc-khi-trien-khai">2. Yêu cầu trước khi triển khai</h2>
+<table>
+<thead>
+<tr>
+<th>Thành phần</th>
+<th>Yêu cầu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Thiết bị</td>
+<td>EDATEC/Raspberry Pi ARM64, nguồn ổn định, đủ chỗ cho file chờ in</td>
+</tr>
+<tr>
+<td>Hệ điều hành</td>
+<td>Debian 12 ARM64, Python 3.11; đã có mạng và SSH</td>
+</tr>
+<tr>
+<td>Tài khoản Linux</td>
+<td>Đăng nhập SSH được và có quyền <code>sudo</code></td>
+</tr>
+<tr>
+<td>Mạng</td>
+<td>IP cố định hoặc DHCP reservation; có Internet trong lúc tải gói cài đặt</td>
+</tr>
+<tr>
+<td>Máy in</td>
+<td>Kết nối USB/LAN và có driver Linux tương thích ARM64</td>
+</tr>
+<tr>
+<td>Máy kỹ thuật viên</td>
+<td>Terminal/PowerShell để SSH, trình duyệt để cấu hình web</td>
+</tr>
+</tbody>
+</table>
+<p>Dung lượng cần tùy số lệnh và kích thước file; chưa có mức CPU/RAM tối thiểu được đo kiểm cho mọi tải. Sau khi cài, web và API hoạt động trong LAN, không cần Internet.</p>
+<p>Chuẩn bị IP thiết bị, thông tin máy in và một PDF ngắn để thử. ZPL là dữ liệu lệnh cho một số máy in nhãn; chỉ chọn khi máy hỗ trợ. Mọi địa chỉ ví dụ trong tài liệu phải được thay bằng thông tin thực tế.</p>
+<h2 id="3-cai-phan-mem-tren-thiet-bi">3. Cài phần mềm trên thiết bị</h2>
+<p>Quy trình này dành cho <strong>bản cài mới</strong>. Nếu <code>/opt/print-appliance</code> hoặc <code>/var/lib/print-appliance</code> đã tồn tại, dừng và dùng <a href="git-deployment.md">quy trình cập nhật</a>. Không xóa thư mục để chạy lại từ đầu.</p>
+<p>Chạy lần lượt từng nhóm lệnh; chỉ chuyển bước khi lệnh trước thành công. <code>sudo</code> thực hiện thao tác với quyền quản trị Linux. Ví dụ xuyên suốt bên dưới dùng thiết bị EDATEC có tài khoản Linux <code>pi</code>, hostname <code>raspberrypi</code> và IP LAN <code>192.168.0.123</code>. Đây là thông tin minh họa, không phải cấu hình mặc định bắt buộc; thay bằng thông tin thiết bị của bạn nếu khác.</p>
+<h3 id="31-ang-nhap-thiet-bi">3.1 Đăng nhập thiết bị</h3>
+<p><strong>Chạy trên máy cá nhân</strong> bằng Terminal hoặc PowerShell:</p>
+<pre><code class="language-sh">ssh pi@raspberrypi
+</code></pre>
+<p>Nếu máy cá nhân không tìm thấy hostname <code>raspberrypi</code>, dùng IP của thiết bị thay thế (chỉ cần chọn một trong hai cách):</p>
+<pre><code class="language-sh">ssh pi@192.168.0.123
+</code></pre>
+<p>Nhập mật khẩu Linux của tài khoản <code>pi</code> khi được hỏi. Mật khẩu này dùng để SSH, không phải mật khẩu quản trị web được tạo ở bước 3.3.</p>
+<p>Lần đầu kết nối, đối chiếu dấu nhận diện SSH với người quản lý thiết bị. Sau khi đăng nhập, <strong>mọi lệnh ở các bước tiếp theo chạy trong phiên SSH trên Debian</strong>, trừ khi có ghi khác.</p>
+<p>Kiểm tra môi trường trước khi cài:</p>
+<pre><code class="language-sh">cat /etc/os-release
+uname -m
+python3 --version
+</code></pre>
+<p><strong>Kết quả cần đạt:</strong> Debian 12, kiến trúc <code>aarch64</code> và Python 3.11. Nếu khác, cần kiểm tra tương thích trước khi tiếp tục.</p>
+<h3 id="32-tai-ma-nguon">3.2 Tải mã nguồn</h3>
+<p>Chạy trong phiên SSH trên EDATEC:</p>
+<pre><code class="language-sh">sudo apt-get update
+sudo apt-get install git
+git clone https://github.com/Lvquy/printer_server.git
+cd printer_server
+</code></pre>
+<p><strong>Kết quả cần đạt:</strong> bạn đang ở thư mục <code>printer_server</code> chứa <code>install.sh</code>. Script cài đúng commit vừa clone; không cần tự tạo môi trường Python hay tài khoản dịch vụ. Không sửa file trong checkout trước khi cài.</p>
+<h3 id="33-cai-ung-dung">3.3 Cài ứng dụng</h3>
+<pre><code class="language-sh">sudo ./install.sh
+</code></pre>
+<p>Khi được hỏi:</p>
+<ol>
+<li>Nhập IP của EDATEC, ví dụ <code>192.168.0.123</code>. Nhấn Enter nếu chỉ muốn truy cập tại thiết bị (<code>127.0.0.1</code>). IP phải đang được gán cho thiết bị; nên đặt IP cố định hoặc DHCP reservation.</li>
+<li>Kiểm tra thông tin, nhập <code>y</code> để xác nhận.
+Script đặt mật khẩu quản trị web ban đầu là <strong><code>admin12345678</code></strong>. Đây không phải mật khẩu SSH của <code>pi</code>; chỉ áp dụng cho bản cài mới.</li>
+</ol>
+<p>Script tự cài CUPS và thư viện Python, tạo tài khoản <code>print-appliance</code>, đặt mã nguồn trong <code>/opt/print-appliance/source</code>, dữ liệu tại <code>/var/lib/print-appliance</code>, rồi đăng ký dịch vụ. Ứng dụng chạy bằng tài khoản riêng, không chạy bằng root. Driver từng model máy in vẫn cài riêng ở mục 4.</p>
+<p><strong>Kết quả cần đạt:</strong> thông báo <code>Installed</code> và lệnh khởi động. Script bật tự khởi động cùng thiết bị nhưng chưa chạy ứng dụng ngay. Nếu đã có bản cài hoặc tài khoản dịch vụ, script dừng để bảo vệ dữ liệu. Nếu cài lỗi giữa chừng, kiểm tra lỗi và phần đã cài; không xóa dữ liệu để thử lại.</p>
+<h3 id="34-khoi-ong-va-mo-trang-web">3.4 Khởi động và mở trang web</h3>
+<p>Chạy một lệnh:</p>
+<pre><code class="language-sh">sudo systemctl start print-appliance
+</code></pre>
+<p>Trên máy cá nhân, mở <code>http://192.168.0.123:8081/</code> và đăng nhập bằng mật khẩu <strong><code>admin12345678</code></strong>. Sau lần đăng nhập đầu tiên, vào <strong>Cấu hình → Đổi mật khẩu quản trị</strong> để đổi ngay; mật khẩu mặc định là thông tin công khai. Trang gửi file là <code>http://192.168.0.123:8081/client</code>.</p>
+<p><strong>Kết quả cần đạt:</strong> mở được trang quản trị. Nếu không, kiểm tra trên EDATEC:</p>
+<pre><code class="language-sh">systemctl is-active print-appliance cups
+sudo journalctl -u print-appliance -n 50 --no-pager
+</code></pre>
+<p>Hai dịch vụ cần báo <code>active</code>. Nếu dịch vụ chạy nhưng không mở được web, kiểm tra IP và firewall: chỉ cho phép TCP <code>8081</code> từ các máy cần dùng. Chọn <code>127.0.0.1</code> khi cài thì máy khác không thể truy cập trực tiếp.</p>
+<p>HTTP không được mã hóa: chỉ dùng trong LAN tin cậy, không mở trực tiếp ra Internet. Với mạng không tin cậy, dùng HTTPS qua reverse proxy theo <a href="operations.md">hướng dẫn vận hành</a>.</p>
+<h2 id="4-cau-hinh-may-in-va-kiem-tra-in-thu">4. Cấu hình máy in và kiểm tra in thử</h2>
+<p>Thực hiện trên trình duyệt sau khi đăng nhập trang quản trị. Mục tiêu là kiểm tra đủ chuỗi: ứng dụng nhận lệnh → CUPS chuyển dữ liệu → máy in ra giấy.</p>
+<h3 id="41-cai-driver-va-ang-ky-may-in">4.1 Cài driver và đăng ký máy in</h3>
+<p>Trước khi đăng ký, cài driver Linux đúng model và kiến trúc ARM64 theo hướng dẫn nhà sản xuất, nếu CUPS chưa có driver phù hợp. Kiểm tra danh sách driver đã cài bằng lệnh sau <strong>trên thiết bị qua SSH</strong>:</p>
+<pre><code class="language-sh">lpinfo -m
+</code></pre>
+<p><strong>Kết quả cần đạt:</strong> tìm thấy driver phù hợp. Không có một lệnh cài driver chung cho mọi máy. File PPD mô tả khả năng và tùy chọn của máy; một PPD riêng lẻ không thay thế các bộ lọc hoặc thư viện mà driver cần.</p>
+<blockquote>
+<p><strong>Ví dụ:</strong> Canon LBP6230dw đã in PDF ra giấy với driver Canon UFRII LT ARM64. Đây không phải model hay driver bắt buộc.</p>
+</blockquote>
+<p>Tiếp theo, đăng ký máy trên web:</p>
+<ol>
+<li>Mở trang quản trị và đăng nhập bằng mật khẩu được cấp.</li>
+<li>Vào <strong>Máy in → Thêm máy in → Cấu hình máy mới</strong>.</li>
+<li>Đặt tên dễ nhận biết, ví dụ “Máy in phòng kho”.</li>
+<li>Chọn thiết bị được tìm thấy và driver đúng loại máy. Nếu không thấy thiết bị hoặc driver, nhờ kỹ thuật viên kiểm tra; không chọn một driver bất kỳ để thử.</li>
+<li>Chọn <strong>PDF</strong> cho tài liệu thông thường, rồi bấm <strong>Tạo máy in</strong>.</li>
+<li>Mở <strong>Sửa cấu hình</strong> nếu cần đặt khổ giấy, in hai mặt hoặc giới hạn các lựa chọn của người gửi.</li>
+</ol>
+<p>Nếu máy đã được đăng ký, không cần thêm lại. Lựa chọn <strong>Dùng cấu hình có sẵn</strong> dành cho trường hợp kỹ thuật viên đã tạo hàng đợi trong CUPS; hàng đợi là nơi CUPS giữ các tài liệu chờ chuyển đến máy. Chỉ dùng hàng đợi dành riêng cho Print Appliance. Xác nhận chính sách lỗi CUPS là <code>stop-printer</code> trước khi tiếp tục máy nhập từ cấu hình có sẵn.</p>
+<p>Nếu máy hiển thị <strong>Đang tạm dừng</strong>, kiểm tra kết nối, giấy và cấu hình rồi bấm <strong>Tiếp tục máy in</strong> khi đã sẵn sàng. Thao tác này có thể cho các lệnh đang chờ chạy.</p>
+<h3 id="42-cap-khoa-cho-ung-dung-gui-in">4.2 Cấp khóa cho ứng dụng gửi in</h3>
+<ol>
+<li>Vào <strong>Clients → Thêm client</strong>, đặt tên dễ nhận biết, chẳng hạn “Ứng dụng phòng kho”.</li>
+<li>Tích các máy được phép sử dụng, rồi lưu.</li>
+<li>Sao chép API key ngay khi hiện. Khóa chỉ được hiển thị một lần; chuyển cho người dùng hoặc người lập trình qua kênh an toàn.</li>
+</ol>
+<p>Bạn có thể sửa quyền dùng máy mà không đổi khóa. Nếu khóa bị lộ, thu hồi hoặc đổi khóa rồi cập nhật cho bên sử dụng; không chia sẻ mật khẩu quản trị thay cho khóa.</p>
+<h3 id="43-chon-file-va-gui-mot-lenh-in">4.3 Chọn file và gửi một lệnh in</h3>
+<p>Lần đầu, nên thử một PDF ngắn, chọn một bản và kiểm tra đúng máy trước khi gửi. <strong>Nút gửi có thể làm máy in chạy thật.</strong></p>
+<ol>
+<li>Mở trang <code>/client</code>, nhập API key rồi bấm <strong>Kết nối</strong>.</li>
+<li>Chọn máy in trong danh sách. Nếu danh sách trống, nhờ quản trị cấp quyền cho client.</li>
+<li>Chọn file, kiểm tra định dạng và đặt <strong>Số bản</strong> là <code>1</code> cho lần thử.</li>
+<li>Nhập <strong>Tiêu đề</strong> dễ nhận biết và chọn các tùy chọn cần thiết.</li>
+<li>Bấm <strong>Gửi lệnh in</strong> một lần. Xem lệnh mới trong phần <strong>Lệnh của client</strong> và lưu mã lệnh nếu cần nhờ hỗ trợ.</li>
+<li>Chờ trạng thái cập nhật và kiểm tra bản in trên giấy. Khi xong, bấm <strong>Ngắt kết nối</strong>.</li>
+</ol>
+<h3 id="44-xac-nhan-ket-qua">4.4 Xác nhận kết quả</h3>
+<table>
+<thead>
+<tr>
+<th>Trạng thái trên trang gửi file</th>
+<th>Bạn nên làm gì?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Đang chờ / Đang giữ</td>
+<td>Chờ đến lượt; nếu đang giữ lâu, nhờ quản trị đọc lý do</td>
+</tr>
+<tr>
+<td>Đang giao / Đã giao CUPS</td>
+<td>Đang xử lý; tiếp tục chờ, không gửi thêm cùng tài liệu</td>
+</tr>
+<tr>
+<td>Hoàn thành (CUPS)</td>
+<td>Hệ thống in báo hoàn thành; kiểm tra giấy thực tế nếu cần xác nhận</td>
+</tr>
+<tr>
+<td>Thất bại / Đã hủy</td>
+<td>Đọc lý do và kiểm tra phần giấy có thể đã in trước khi quyết định gửi mới</td>
+</tr>
+<tr>
+<td>Chưa rõ kết quả</td>
+<td>Nhờ quản trị kiểm tra lệnh và máy; <strong>không tự in lại</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Nếu gửi file rồi mất phản hồi:</strong> giữ nguyên tab, dùng <strong>Gửi lại cùng yêu cầu</strong> nếu nút này xuất hiện. Nút đó gửi lại đúng dữ liệu và mã đang giữ, giúp hệ thống không tạo lệnh trùng. Không đóng hoặc tải lại trang để thử; nếu đã làm vậy, kiểm tra lịch sử và nhờ quản trị xác minh trước khi gửi mới.</p>
+<p><strong>Nếu máy hết giấy hoặc mất kết nối:</strong> sửa nguyên nhân trước, sau đó quản trị kiểm tra và cho tiếp tục nếu đang tạm dừng. Máy hết lỗi không có nghĩa các lệnh sẽ tự chạy lại.</p>
+<p><strong>Nếu cần hủy:</strong> nhờ quản trị mở lệnh trong mục <strong>Lệnh in</strong> và yêu cầu hủy. Hủy không thu hồi được giấy đã in; khi tài liệu đã được chuyển tới CUPS, cần chờ hệ thống xác nhận kết quả.</p>
+<p><strong>Điều kiện bàn giao:</strong> in một bản đúng nội dung, đúng máy; kiểm tra tùy chọn cần dùng và quyền client. Trên máy/hàng đợi thử được phép, kiểm tra thêm tạm dừng, tiếp tục và hủy từ web. Có nhóm <code>lpadmin</code> hoặc tạo máy thành công chưa chứng minh mọi thao tác CUPS đều hoạt động.</p>
+<h2 id="5-chuc-nang-va-tich-hop-api">5. Chức năng và tích hợp API</h2>
+<p>Print Appliance quản lý máy in, cấp quyền theo client, nhận file PDF/ZPL, chống gửi trùng và theo dõi/hủy lệnh. Mục này minh họa đủ 5 API dành cho ứng dụng gửi in; API quản trị dùng cơ chế xác thực riêng, xem <a href="api.md">đặc tả đầy đủ</a>.</p>
+<h3 id="51-chuan-bi-goi-api">5.1 Chuẩn bị gọi API</h3>
+<p>Chạy các ví dụ bằng <strong>Bash trên máy có file cần in</strong> (Linux, macOS hoặc WSL), không bắt buộc SSH vào EDATEC. Cần có <code>curl</code>. Ví dụ dùng IP <code>192.168.0.123</code>; thay nếu thiết bị dùng địa chỉ khác.</p>
+<p>Trong trang quản trị, tạo client và cấp máy in tại <strong>Clients</strong>. Dùng API key của client, không dùng mật khẩu quản trị. Nhập key qua lời nhắc để không ghi key trực tiếp vào lịch sử lệnh:</p>
+<pre><code class="language-sh">BASE_URL='http://192.168.0.123:8081'
+read -r -s -p 'API key: ' API_KEY
+printf '\n'
+</code></pre>
+<p>Mọi request bên dưới gửi header <code>Authorization: Bearer ...</code>. Không chia sẻ key hoặc đưa vào URL. HTTP không được mã hóa; chỉ dùng LAN tin cậy hoặc HTTPS. Các ID và JSON phản hồi bên dưới đều là ví dụ, không phải dữ liệu thật của EDATEC.</p>
+<p><code>curl -i</code> hiển thị cả mã HTTP và JSON. Các lệnh GET không có body. Chỉ POST gửi file và POST hủy làm thay đổi lệnh in.</p>
+<h3 id="52-danh-sach-may-uoc-cap">5.2 Danh sách máy được cấp</h3>
+<p><strong>GET <code>/api/v1/printers</code></strong></p>
+<p>Lấy <code>id</code> của máy muốn in và gán <code>PRINTER_ID=printer-example</code> (thay bằng ID thật). Mỗi máy có <code>capabilities.supported</code> và <code>capabilities.defaults</code>. Gửi giá trị từ supported bằng field cùng tên: <code>paper_size</code>, <code>sides</code>, <code>color_mode</code>, <code>scaling</code>. Bỏ qua field thì dùng mặc định; null nghĩa là chưa ánh xạ chắc chắn mặc định driver. Không cần gọi API capabilities riêng. Các lựa chọn riêng lẻ vẫn có thể xung đột khi kết hợp; server kiểm tra khi nhận lệnh. Mảng rỗng <code>[]</code> nghĩa là client chưa thấy máy nào được cấp. <code>ready</code> là trạng thái cho phép xử lý, không chứng minh máy đang có giấy hoặc đang online.</p>
+<p><strong>Request:</strong></p>
+<pre><code class="language-sh">curl -i &quot;$BASE_URL/api/v1/printers&quot; \
+  -H &quot;Authorization: Bearer $API_KEY&quot;
+</code></pre>
+<p><strong>Response HTTP 200 — Danh sách (có thể rỗng).</strong></p>
+<pre><code class="language-json">[
+  {
+    &quot;id&quot;: &quot;printer-example&quot;,
+    &quot;name&quot;: &quot;Máy in được cấp&quot;,
+    &quot;formats&quot;: [
+      &quot;pdf&quot;
+    ],
+    &quot;status&quot;: &quot;ready&quot;,
+    &quot;pause_reason&quot;: null,
+    &quot;capabilities&quot;: {
+      &quot;availability&quot;: &quot;available&quot;,
+      &quot;reason&quot;: null,
+      &quot;supported&quot;: {
+        &quot;paper_size&quot;: [
+          &quot;A4&quot;,
+          &quot;Letter&quot;
+        ],
+        &quot;sides&quot;: [
+          &quot;one-sided&quot;,
+          &quot;two-sided-long-edge&quot;
+        ],
+        &quot;color_mode&quot;: [
+          &quot;monochrome&quot;
+        ],
+        &quot;scaling&quot;: [
+          &quot;auto&quot;,
+          &quot;fit&quot;
+        ]
+      },
+      &quot;defaults&quot;: {
+        &quot;paper_size&quot;: &quot;A4&quot;,
+        &quot;sides&quot;: &quot;one-sided&quot;,
+        &quot;color_mode&quot;: &quot;monochrome&quot;,
+        &quot;scaling&quot;: &quot;auto&quot;
+      }
+    }
+  }
+]
+</code></pre>
+<p><strong>Lỗi cần xử lý:</strong> <code>401</code>: API key thiếu, sai, đã đổi hoặc đã thu hồi.</p>
+<h3 id="53-gui-yeu-cau-in">5.3 Gửi yêu cầu in</h3>
+<p><strong>POST <code>/api/v1/jobs</code></strong></p>
+<p><strong>Lệnh này có thể in ra giấy thật.</strong> Chuẩn bị <code>invoice.pdf</code> trong thư mục hiện tại. <code>PRINTER_ID</code> lấy từ bước 5.2; nếu chưa có <code>uuidgen</code>, tạo một mã duy nhất 1–128 ký tự gồm chữ, số hoặc <code>._~-</code> rồi gán cho <code>REQUEST_ID</code>.</p>
+<p>Body là <code>multipart/form-data</code>, không phải JSON. Cần <code>file</code>, <code>printer_id</code>, <code>format</code> và <code>title</code>; ví dụ truyền rõ <code>copies=1</code> để dùng mặc định của máy. Số bản trong khoảng 1–100, có thể bị giới hạn thêm theo máy. Muốn đổi khổ giấy từ capabilities trong danh sách máy, thêm <code>-F 'paper_size=A4'</code>. Không tự đặt header Content-Type; curl tạo multipart boundary.</p>
+<p>Các field tùy chọn PDF:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Giá trị minh họa</th>
+<th>Ý nghĩa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>paper_size</code></td>
+<td><code>A4</code></td>
+<td>Khổ giấy</td>
+</tr>
+<tr>
+<td><code>sides</code></td>
+<td><code>one-sided</code>, <code>two-sided-long-edge</code>, <code>two-sided-short-edge</code></td>
+<td>Một mặt / hai mặt cạnh dài / cạnh ngắn</td>
+</tr>
+<tr>
+<td><code>color_mode</code></td>
+<td><code>monochrome</code>, <code>color</code></td>
+<td>Trắng đen / màu</td>
+</tr>
+<tr>
+<td><code>scaling</code></td>
+<td><code>auto</code>, <code>auto-fit</code>, <code>fit</code>, <code>fill</code>, <code>none</code></td>
+<td>Tỷ lệ PDF; fill có thể cắt mép</td>
+</tr>
+</tbody>
+</table>
+<p>Chỉ dùng giá trị máy công bố trong <code>capabilities.supported</code>. ZPL không nhận các field này. Yêu cầu sai trả 422 với <code>detail.field</code>, <code>detail.allowed</code>, <code>detail.message</code>; tổ hợp sai trả <code>field=combination</code>. Không đọc được CUPS hoặc mapping thay đổi trả 503, không tự chọn phương án khác.</p>
+<p><strong>Thay đổi không tương thích:</strong> endpoint capabilities riêng đã bỏ. Field JSON <code>options</code> không được dùng cho lệnh mới. Ngoại lệ duy nhất là gửi lại nguyên trạng yêu cầu cũ đã được nhận trước khi cập nhật: hệ thống chỉ trả kết quả chống trùng, không tạo lệnh mới. Không đổi mã yêu cầu để vượt lỗi khi chưa biết bản cũ đã in hay chưa.</p>
+<p>HTTP 202 chỉ xác nhận đã lưu lệnh, <strong>không xác nhận giấy đã ra</strong>. Lưu <code>job_id</code> để theo dõi.</p>
+<p>Nếu mất phản hồi, giữ nguyên mã, file, tên file và mọi tham số; chỉ chạy lại lệnh <code>curl</code>, <strong>không chạy lại dòng tạo REQUEST_ID</strong>. Cùng yêu cầu đã nhận trả HTTP 200 với <code>deduplicated=true</code>. Không đổi mã để vượt lỗi 409. Nếu <code>history_expired=true</code>, lịch sử đã bị dọn nhưng hệ thống vẫn không tạo bản in mới.</p>
+<p><strong>Request:</strong></p>
+<pre><code class="language-sh"># Tạo mã một lần cho thao tác in mới; giữ lại nếu phải gửi lại.
+REQUEST_ID=&quot;$(uuidgen)&quot;
+curl -i &quot;$BASE_URL/api/v1/jobs&quot; \
+  -H &quot;Authorization: Bearer $API_KEY&quot; \
+  -H &quot;Idempotency-Key: $REQUEST_ID&quot; \
+  -F &quot;printer_id=$PRINTER_ID&quot; \
+  -F 'file=@./invoice.pdf;type=application/pdf' \
+  -F 'format=pdf' \
+  -F 'title=Invoice example' \
+  -F 'copies=1'
+</code></pre>
+<p><strong>Response HTTP 202 — Yêu cầu mới được lưu; chưa chứng minh đã in.</strong></p>
+<pre><code class="language-json">{
+  &quot;job_id&quot;: &quot;job-example&quot;,
+  &quot;status&quot;: &quot;queued&quot;,
+  &quot;deduplicated&quot;: false
+}
+</code></pre>
+<p><strong>Response HTTP 200 — Phát lại cùng key/nội dung; không tạo job mới.</strong></p>
+<pre><code class="language-json">{
+  &quot;job_id&quot;: &quot;job-example&quot;,
+  &quot;status&quot;: &quot;queued&quot;,
+  &quot;deduplicated&quot;: true,
+  &quot;history_expired&quot;: false
+}
+</code></pre>
+<p><strong>Lỗi cần xử lý:</strong> <code>401</code>: API key thiếu, sai, đã đổi hoặc đã thu hồi.; <code>403</code>: Máy không được cấp.; <code>409</code>: Key đã dùng với nội dung khác; không đổi key để vượt qua.; <code>413</code>: Vượt giới hạn tệp/body.; <code>422</code>: Thiếu/sai field, chữ ký PDF/ZPL, format, copies, options hoặc request ID.; <code>429</code>: Hàng đợi đầy.; <code>503</code>: Không xác minh được capability máy.; <code>507</code>: Không đủ đĩa hoặc không lưu được yêu cầu.</p>
+<h3 id="54-lich-su-cua-client">5.4 Lịch sử của client</h3>
+<p><strong>GET <code>/api/v1/jobs</code></strong></p>
+<p><code>limit</code> không bắt buộc, mặc định 50 và được giới hạn trong 1–100. Kết quả mới nhất trước, chỉ gồm lệnh của client hiện tại, không trả nội dung file. Mảng rỗng <code>[]</code> là chưa có lịch sử hiển thị.</p>
+<p><strong>Request:</strong></p>
+<pre><code class="language-sh">curl -i &quot;$BASE_URL/api/v1/jobs?limit=50&quot; \
+  -H &quot;Authorization: Bearer $API_KEY&quot;
+</code></pre>
+<p><strong>Response HTTP 200 — Danh sách metadata, không trả file đã lưu.</strong></p>
+<pre><code class="language-json">[
+  {
+    &quot;job_id&quot;: &quot;job-example&quot;,
+    &quot;printer_id&quot;: &quot;printer-example&quot;,
+    &quot;status&quot;: &quot;queued&quot;,
+    &quot;accepted_at&quot;: &quot;2026-10-06T09:00:00+00:00&quot;,
+    &quot;updated_at&quot;: &quot;2026-10-06T09:00:00+00:00&quot;,
+    &quot;title&quot;: &quot;Invoice example&quot;,
+    &quot;format&quot;: &quot;pdf&quot;,
+    &quot;copies&quot;: 1,
+    &quot;reason&quot;: null
+  }
+]
+</code></pre>
+<p><strong>Lỗi cần xử lý:</strong> <code>401</code>: API key thiếu, sai, đã đổi hoặc đã thu hồi.</p>
+<h3 id="55-chi-tiet-va-su-kien-lenh">5.5 Chi tiết và sự kiện lệnh</h3>
+<p><strong>GET <code>/api/v1/jobs/{job_id}</code></strong></p>
+<p>Dùng <code>job_id</code> từ kết quả gửi hoặc lịch sử. Gọi lại mỗi 3–5 giây khi cần theo dõi; dừng khi <code>completed</code>, <code>failed</code> hoặc <code>canceled</code>. <code>completed</code> là CUPS báo hoàn thành, không bảo đảm giấy đã ra. Với <code>unknown</code>, nhờ quản trị xác minh, không tự in lại. <code>reason</code> và <code>events</code> giúp giải thích trạng thái.</p>
+<p><strong>Request:</strong></p>
+<pre><code class="language-sh">JOB_ID='job-example' # Thay bằng job_id thật đã nhận
+curl -i &quot;$BASE_URL/api/v1/jobs/$JOB_ID&quot; \
+  -H &quot;Authorization: Bearer $API_KEY&quot;
+</code></pre>
+<p><strong>Response HTTP 200 — Metadata và events.</strong></p>
+<pre><code class="language-json">{
+  &quot;job_id&quot;: &quot;job-example&quot;,
+  &quot;printer_id&quot;: &quot;printer-example&quot;,
+  &quot;status&quot;: &quot;queued&quot;,
+  &quot;accepted_at&quot;: &quot;2026-10-06T09:00:00+00:00&quot;,
+  &quot;updated_at&quot;: &quot;2026-10-06T09:00:00+00:00&quot;,
+  &quot;title&quot;: &quot;Invoice example&quot;,
+  &quot;format&quot;: &quot;pdf&quot;,
+  &quot;copies&quot;: 1,
+  &quot;reason&quot;: null,
+  &quot;events&quot;: [
+    {
+      &quot;at&quot;: &quot;2026-10-06T09:00:00+00:00&quot;,
+      &quot;actor&quot;: &quot;client&quot;,
+      &quot;status&quot;: &quot;queued&quot;,
+      &quot;message&quot;: &quot;Accepted durable request&quot;
+    }
+  ]
+}
+</code></pre>
+<p><strong>Lỗi cần xử lý:</strong> <code>401</code>: API key thiếu, sai, đã đổi hoặc đã thu hồi.; <code>404</code>: Lệnh không tồn tại, không thuộc client hoặc lịch sử đã bị dọn.</p>
+<h3 id="56-yeu-cau-huy-lenh">5.6 Yêu cầu hủy lệnh</h3>
+<p><strong>POST <code>/api/v1/jobs/{job_id}/cancel</code></strong></p>
+<p>Không gửi body. HTTP 200 trả trạng thái sau yêu cầu, không bảo đảm luôn là <code>canceled</code>. Đọc <code>status</code>, <code>reason</code>, <code>events</code>; nếu cần, gọi lại API chi tiết. Hủy không thu hồi được giấy đã in và không xóa lịch sử.</p>
+<p><strong>Request:</strong></p>
+<pre><code class="language-sh">curl -i -X POST &quot;$BASE_URL/api/v1/jobs/$JOB_ID/cancel&quot; \
+  -H &quot;Authorization: Bearer $API_KEY&quot;
+</code></pre>
+<p><strong>Response HTTP 200 — Trạng thái thực tế sau yêu cầu, không luôn là canceled.</strong></p>
+<pre><code class="language-json">{
+  &quot;job_id&quot;: &quot;job-example&quot;,
+  &quot;printer_id&quot;: &quot;printer-example&quot;,
+  &quot;status&quot;: &quot;canceled&quot;,
+  &quot;accepted_at&quot;: &quot;2026-10-06T09:00:00+00:00&quot;,
+  &quot;updated_at&quot;: &quot;2026-10-06T09:00:00+00:00&quot;,
+  &quot;title&quot;: &quot;Invoice example&quot;,
+  &quot;format&quot;: &quot;pdf&quot;,
+  &quot;copies&quot;: 1,
+  &quot;reason&quot;: &quot;Canceled before CUPS handoff&quot;,
+  &quot;events&quot;: []
+}
+</code></pre>
+<p><strong>Lỗi cần xử lý:</strong> <code>401</code>: API key thiếu, sai, đã đổi hoặc đã thu hồi.; <code>404</code>: Lệnh không tồn tại hoặc không thuộc client.; <code>503</code>: Không xác minh được trạng thái CUPS; chưa báo canceled.</p>
+<p>Tài liệu API cũng có sẵn khi không có Internet tại <code>/client#api-guide</code>; trang hướng dẫn không tự gửi request hoặc in thử.</p>
+<h2 id="6-van-hanh-va-xu-ly-loi-co-ban">6. Vận hành và xử lý lỗi cơ bản</h2>
+<h3 id="61-kiem-tra-khi-khong-mo-uoc-web">6.1 Kiểm tra khi không mở được web</h3>
+<p>Chạy <strong>trên thiết bị qua SSH</strong>:</p>
+<pre><code class="language-sh">systemctl is-active print-appliance cups
+sudo journalctl -u print-appliance -n 50 --no-pager
+</code></pre>
+<p>Hai dịch vụ cần báo <code>active</code>. Log cho biết lỗi khởi động hoặc kết nối; nếu dịch vụ vẫn chạy nhưng máy khác không mở được web, kiểm tra IP lắng nghe, mạng và firewall ở bước 3.4.</p>
+<h3 id="62-quan-ly-mat-khau-va-khoa-truy-cap">6.2 Quản lý mật khẩu và khóa truy cập</h3>
+<p>Đổi mật khẩu tại <strong>Cấu hình → Đổi mật khẩu quản trị</strong>. Mật khẩu mới ít nhất 12 ký tự; đổi thành công đăng xuất các phiên quản trị nhưng không thay API key.</p>
+<p>Nếu quên mật khẩu, chạy trên thiết bị:</p>
+<pre><code class="language-sh">sudo -u print-appliance /opt/print-appliance/.venv/bin/print-appliance admin-password --data-dir /var/lib/print-appliance
+</code></pre>
+<p>Không sửa trực tiếp cơ sở dữ liệu. Nếu API key bị lộ, thu hồi/đổi khóa trong <strong>Clients</strong> rồi cập nhật ứng dụng sử dụng khóa đó.</p>
+<h3 id="63-cap-nhat-va-sao-luu">6.3 Cập nhật và sao lưu</h3>
+<p>Trước bảo trì, kiểm tra lệnh đang xử lý và chọn thời điểm phù hợp. Không chạy lại quy trình cài mới trên bản đang vận hành; dùng <a href="git-deployment.md">quy trình cập nhật</a>.</p>
+<p>Sao lưu cả dữ liệu và file chờ in theo <a href="operations.md">hướng dẫn vận hành</a>, không chỉ sao chép riêng SQLite đang chạy. Trước khi phục hồi, đối chiếu các lệnh phát sinh sau bản sao để tránh in lại. Giữ nguyên hàng đợi và driver CUPS khi chỉ cập nhật ứng dụng.</p></main><footer class="report-end">Luong Nguyen · Print Appliance. Bản HTML đọc được khi không có Internet; số trang trong mục lục dẫn tới bản PDF đi kèm.</footer></div></body></html>

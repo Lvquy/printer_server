@@ -1,0 +1,32 @@
+[Unit]
+Description=Local Print Appliance API and CUPS coordinator
+After=network.target cups.service
+
+[Service]
+Type=simple
+User=print-appliance
+Group=print-appliance
+SupplementaryGroups=lpadmin
+Environment=PRINT_APPLIANCE_DATA_DIR=/var/lib/print-appliance
+Environment=PRINT_APPLIANCE_HOST=127.0.0.1
+Environment=PRINT_APPLIANCE_PORT=8081
+Environment=PRINT_APPLIANCE_SECURE_COOKIE=0
+WorkingDirectory=/opt/print-appliance
+ExecStart=/opt/print-appliance/.venv/bin/print-appliance run
+Restart=on-failure
+RestartSec=3
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/print-appliance
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

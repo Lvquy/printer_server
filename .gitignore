@@ -1,0 +1,14 @@
+.venv/
+.local-data/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+.env
+
+# Offline React build dependencies; generated runtime bundles are tracked.
+node_modules/
