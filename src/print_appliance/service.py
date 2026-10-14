@@ -1420,6 +1420,43 @@ class Appliance:
         finally:
             db.close()
 
+    def printer_api_key(self, printer_id: str) -> str | None:
+        db = self.db()
+        try:
+            row = db.execute(
+                "SELECT k.api_key FROM printer_api_keys k JOIN printers p ON p.id=k.printer_id "
+                "WHERE p.id=? AND p.deleted_at IS NULL",
+                (printer_id,),
+            ).fetchone()
+            return row["api_key"] if row else None
+        finally:
+            db.close()
+
+    def rotate_printer_api_key(self, printer_id: str) -> str | None:
+        db = self.db()
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT k.client_id FROM printer_api_keys k JOIN printers p ON p.id=k.printer_id "
+                "WHERE p.id=? AND p.deleted_at IS NULL",
+                (printer_id,),
+            ).fetchone()
+            if not row:
+                db.execute("ROLLBACK")
+                return None
+            key = "pa_" + secrets.token_urlsafe(32)
+            db.execute("UPDATE printer_api_keys SET api_key=? WHERE printer_id=?", (key, printer_id))
+            db.execute(
+                "UPDATE clients SET key_hash=?,revoked=0 WHERE id=?",
+                (hash_api_key(key), row["client_id"]),
+            )
+            db.execute("COMMIT")
+            return key
+        finally:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+            db.close()
+
     def delete_printer(self, printer_id: str) -> bool:
         with self.printer_lock(printer_id):
             db = self.db()
@@ -1447,6 +1484,12 @@ class Appliance:
                 # Free the unique queue value for later registration without touching CUPS.
                 deleted_at = now_iso()
                 db.execute(
+                    "UPDATE clients SET revoked=1,deleted_at=? WHERE id IN "
+                    "(SELECT client_id FROM printer_api_keys WHERE printer_id=?)",
+                    (deleted_at, printer_id),
+                )
+                db.execute("DELETE FROM printer_api_keys WHERE printer_id=?", (printer_id,))
+                db.execute(
                     "UPDATE printers SET deleted_at=?,queue=?,updated_at=? "
                     "WHERE id=? AND deleted_at IS NULL",
                     (deleted_at, retired_queue, deleted_at, printer_id),
@@ -1468,6 +1511,10 @@ class Appliance:
             if client is None:
                 db.execute("ROLLBACK")
                 return False
+            if db.execute(
+                "SELECT 1 FROM printer_api_keys WHERE client_id=?", (client_id,)
+            ).fetchone():
+                raise ValueError("Printer API clients are managed on the printer")
             active = db.execute(
                 "SELECT 1 FROM jobs WHERE client_id=? "
                 "AND status IN ('queued','held','submitting','submitted','unknown') LIMIT 1",
@@ -1567,6 +1614,7 @@ class Appliance:
         db = self.db()
         try:
             now = now_iso()
+            db.execute("BEGIN IMMEDIATE")
             db.execute(
                 "INSERT INTO printers(id,name,queue,device_uri,driver,mapping_signature,managed,formats_json,defaults_json,"
                 "allowed_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -1585,10 +1633,15 @@ class Appliance:
                     now,
                 ),
             )
-            return self._printer_record(
+            store.create_printer_credential(db, printer_id, name.strip())
+            result = self._printer_record(
                 db.execute("SELECT * FROM printers WHERE id=?", (printer_id,)).fetchone()
             )
+            db.execute("COMMIT")
+            return result
         finally:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
             db.close()
 
     def edit_printer(self, printer_id: str, body: dict[str, Any]) -> dict[str, Any] | None:
@@ -1652,6 +1705,7 @@ class Appliance:
             raise ValueError("CUPS mapping changed externally; inspect and re-register explicitly")
         db = self.db()
         try:
+            db.execute("BEGIN IMMEDIATE")
             db.execute(
                 "UPDATE printers SET name=?,device_uri=?,driver=?,mapping_signature=?,formats_json=?,defaults_json=?,allowed_json=?,"
                 "updated_at=? WHERE id=? AND deleted_at IS NULL",
@@ -1667,10 +1721,19 @@ class Appliance:
                     printer_id,
                 ),
             )
-            return self._printer_record(
+            db.execute(
+                "UPDATE clients SET name=? WHERE id IN "
+                "(SELECT client_id FROM printer_api_keys WHERE printer_id=?)",
+                (f"Máy in: {name.strip()}", printer_id),
+            )
+            result = self._printer_record(
                 db.execute("SELECT * FROM printers WHERE id=?", (printer_id,)).fetchone()
             )
+            db.execute("COMMIT")
+            return result
         finally:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
             db.close()
 
     def admin_jobs(self, limit: int = 100) -> list[dict[str, Any]]:

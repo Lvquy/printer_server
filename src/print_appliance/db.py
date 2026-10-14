@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import secrets
 import sqlite3
+import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +49,11 @@ CREATE TABLE IF NOT EXISTS client_printers (
     client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     printer_id TEXT NOT NULL REFERENCES printers(id) ON DELETE CASCADE,
     PRIMARY KEY(client_id, printer_id)
+);
+CREATE TABLE IF NOT EXISTS printer_api_keys (
+    printer_id TEXT PRIMARY KEY REFERENCES printers(id),
+    client_id TEXT NOT NULL UNIQUE REFERENCES clients(id),
+    api_key TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS jobs (
     id TEXT PRIMARY KEY,
@@ -156,8 +165,45 @@ def initialize(path: Path) -> None:
                 "INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)",
                 (key, json.dumps(value)),
             )
+        # Existing registrations gain their own key without invalidating older
+        # integration clients. Each printer's new client is granted only itself.
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            for printer in db.execute(
+                "SELECT id,name FROM printers WHERE deleted_at IS NULL AND id NOT IN "
+                "(SELECT printer_id FROM printer_api_keys)"
+            ).fetchall():
+                create_printer_credential(db, printer["id"], printer["name"])
+            db.execute("COMMIT")
+        except Exception:
+            db.execute("ROLLBACK")
+            raise
     finally:
         db.close()
+
+
+def create_printer_credential(db: sqlite3.Connection, printer_id: str, name: str) -> str:
+    """Create a dedicated client and retrievable key inside the caller's transaction."""
+    key = "pa_" + secrets.token_urlsafe(32)
+    client_id = str(uuid.uuid4())
+    db.execute(
+        "INSERT INTO clients(id,name,key_hash,created_at) VALUES(?,?,?,?)",
+        (
+            client_id,
+            f"Máy in: {name}",
+            hashlib.sha256(key.encode("utf-8")).hexdigest(),
+            datetime.now(UTC).isoformat(timespec="seconds"),
+        ),
+    )
+    db.execute(
+        "INSERT INTO client_printers(client_id,printer_id) VALUES(?,?)",
+        (client_id, printer_id),
+    )
+    db.execute(
+        "INSERT INTO printer_api_keys(printer_id,client_id,api_key) VALUES(?,?,?)",
+        (printer_id, client_id, key),
+    )
+    return key
 
 
 def get_limits(db: sqlite3.Connection) -> dict[str, int]:

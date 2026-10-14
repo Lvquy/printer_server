@@ -174,7 +174,7 @@ function ClientApp() {
       <section id="key-panel" className="panel narrow" hidden={connected}><h2>Kết nối client</h2>
         <form id="key-form" autoComplete="off" onSubmit={event => { event.preventDefault(); action(() => connect(candidate.trim())); }}>
           <label htmlFor="api-key">API key</label><Input ref={keyInput} id="api-key" type="password" required autoComplete="off" maxLength={256} spellCheck={false} value={candidate} onChange={event => setCandidate(event.target.value)} />
-          <p className="muted">Dùng key được cấp ở tab Clients, không phải mật khẩu quản trị. Key lưu theo tab bằng sessionStorage; tải lại tự kết nối. Ngắt kết nối sẽ xóa key. Không dùng trên trình duyệt dùng chung.</p>
+          <p className="muted">Dùng key của máy in trong mục Máy in trên trang quản trị, không phải mật khẩu quản trị. Key lưu theo tab bằng sessionStorage; tải lại tự kết nối. Ngắt kết nối sẽ xóa key. Không dùng trên trình duyệt dùng chung.</p>
           <Button type="submit">{busy ? 'Đang kết nối…' : 'Kết nối'}</Button>
         </form>
       </section>
@@ -186,7 +186,7 @@ function ClientApp() {
         }}>Ngắt kết nối</Button></div>
         <section className="panel"><h2>Gửi file</h2><p className="bad">Gửi lệnh sẽ in thật nếu máy được phép xử lý. Kiểm tra máy và số bản trước khi gửi.</p>
           <p className="muted">Tải lại chỉ giữ kết nối client, không khôi phục file hay yêu cầu đang gửi. Nếu mất phản hồi, kiểm tra lịch sử trước khi tạo lệnh mới.</p>
-          <p id="no-printers" className="muted" hidden={printers.length > 0}>Client chưa được cấp máy in. Nhờ quản trị cấp quyền trong tab Clients.</p>
+          <p id="no-printers" className="muted" hidden={printers.length > 0}>Key này không có máy in khả dụng. Nhờ quản trị kiểm tra mục Máy in.</p>
           <BusyContext.Provider value={busy || !!pending || !printers.length}>
             <form id="print-form" onSubmit={submit}>
               <label htmlFor="client-printer">Máy in</label><Select id="client-printer" required value={printerId} onChange={event => {

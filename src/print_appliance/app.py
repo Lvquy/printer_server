@@ -613,6 +613,24 @@ def create_app(
             raise HTTPException(404, "Printer not found")
         return printer
 
+    @app.get("/admin/api/printers/{printer_id}/api-key")
+    def printer_api_key(
+        printer_id: str, _: dict[str, str] = Depends(admin_session)
+    ) -> Response:
+        key = appliance.printer_api_key(printer_id)
+        if key is None:
+            raise HTTPException(404, "Printer not found")
+        return JSONResponse({"id": printer_id, "api_key": key}, headers={"Cache-Control": "no-store"})
+
+    @app.post("/admin/api/printers/{printer_id}/rotate-key")
+    def rotate_printer_api_key(
+        printer_id: str, _: dict[str, str] = Depends(admin_mutation)
+    ) -> Response:
+        key = appliance.rotate_printer_api_key(printer_id)
+        if key is None:
+            raise HTTPException(404, "Printer not found")
+        return JSONResponse({"id": printer_id, "api_key": key}, headers={"Cache-Control": "no-store"})
+
     @app.delete("/admin/api/printers/{printer_id}")
     def delete_printer(
         printer_id: str, _: dict[str, str] = Depends(admin_mutation)
@@ -842,6 +860,8 @@ def create_app(
             ).fetchone()
             if not client:
                 raise HTTPException(404, "Client not found")
+            if db.execute("SELECT 1 FROM printer_api_keys WHERE client_id=?", (client_id,)).fetchone():
+                raise HTTPException(409, "Manage this API key on the printer")
             if "printer_ids" in data:
                 for printer_id in set(ids):
                     if not db.execute(
@@ -887,6 +907,8 @@ def create_app(
             ).fetchone()
             if not client:
                 raise HTTPException(404, "Client not found")
+            if db.execute("SELECT 1 FROM printer_api_keys WHERE client_id=?", (client_id,)).fetchone():
+                raise HTTPException(409, "Manage this API key on the printer")
             for printer_id in set(ids):
                 if not db.execute(
                     "SELECT 1 FROM printers WHERE id=? AND deleted_at IS NULL", (printer_id,)
@@ -915,6 +937,8 @@ def create_app(
             ).fetchone()
             if not row:
                 raise HTTPException(404, "Client not found")
+            if db.execute("SELECT 1 FROM printer_api_keys WHERE client_id=?", (client_id,)).fetchone():
+                raise HTTPException(409, "Manage this API key on the printer")
             if revoke:
                 db.execute("UPDATE clients SET revoked=1 WHERE id=?", (client_id,))
                 result = {"id": client_id, "revoked": True}

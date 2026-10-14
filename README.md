@@ -95,11 +95,11 @@ API v1 routes implemented:
 - `GET /api/v1/printers` — printers granted to the authenticated client only.
 - `POST /api/v1/jobs` — multipart `file`, `printer_id`, `format`, `title`, `copies`, `options`; requires `Idempotency-Key` and `Authorization: Bearer …`.
 - `GET /api/v1/jobs?limit=50`, `GET /api/v1/jobs/{job_id}`, and `POST /api/v1/jobs/{job_id}/cancel` — own client jobs only.
-- The admin UI is `/`, split into Tổng quan, Máy in, Clients, Lệnh in and Cấu hình tabs. Arrow keys/Home/End navigate the tabs; `#tab=printers` etc. preserves the selected view on reload.
+- The admin UI is `/`, split into Tổng quan, Máy in, Lệnh in, Cấu hình and API Guide tabs. Arrow keys/Home/End navigate the tabs; `#tab=printers` etc. preserves the selected view on reload.
 - Printer create/edit controls include a local, case/accent-insensitive driver search across model and PPD ID. All words must match; at most 200 options render at once, so type a more specific query for a large catalogue. Selection is explicit: filtering never silently substitutes a different driver. Search does not install missing drivers. Per-printer options come from that queue's reported driver schema; see [docs/print-options.md](docs/print-options.md) for defaults, client permissions, constraints and known limits.
-- Same-origin session routes live under `/admin/api/` (login/session/logout, status, CUPS discovery, printers/import/edit/pause/resume, clients/grants/key rotation/revoke, job list/details/cancel/resume/unknown resolution, and finite admission/retention settings).
+- Same-origin session routes live under `/admin/api/` (login/session/logout, status, CUPS discovery, printers/import/edit/pause/resume/key reveal/rotation, legacy clients/grants endpoints, job list/details/cancel/resume/unknown resolution, and finite admission/retention settings).
 
-API keys are random, stored as SHA-256 hashes and shown once at client creation/rotation. Admin sessions are server-side, expire after eight hours, use `HttpOnly; SameSite=Strict` cookies and CSRF tokens for mutations. `PRINT_APPLIANCE_SECURE_COOKIE=1` enables `Secure` for trusted HTTPS/reverse-proxy deployments. No wildcard CORS or public API docs are enabled. Never expose the default HTTP listener to the Internet.
+Each registered printer receives a dedicated random API key. The administrator can reveal or rotate it from the Máy in tab; list/detail responses do not contain the key. The appliance stores this key so it can be shown again, while the client authentication path still checks its SHA-256 hash. Existing legacy clients remain usable for compatibility. Admin sessions are server-side, expire after eight hours, use `HttpOnly; SameSite=Strict` cookies and CSRF tokens for mutations. `PRINT_APPLIANCE_SECURE_COOKIE=1` enables `Secure` for trusted HTTPS/reverse-proxy deployments. No wildcard CORS or public API docs are enabled. Never expose the default HTTP listener to the Internet.
 
 Multipart request bodies and uploaded files are bounded; PDFs require `%PDF-`, ZPL requires UTF-8 `^XA...^XZ`, and only per-printer allowlisted option values are passed to CUPS. Client-provided paths, URLs and shell commands are not used. API errors do not expose spool paths or tracebacks.
 
@@ -168,7 +168,7 @@ See [docs/verification.md](docs/verification.md) for the measured local checks a
 
 ## Browser regression and Git deployment
 
-`tests/browser/admin-ui.cjs` checks the six tabs, integrated driver combobox against a mocked 16k-driver catalogue, field-help popovers, printer/client CRUD, delayed requests, duplicate prevention and 409/503 recovery. It intercepts all admin API calls and refuses non-loopback base URLs. Use an externally available Playwright installation; it is test tooling, not a frontend/CDN dependency:
+`tests/browser/admin-ui.cjs` checks the five tabs, integrated driver combobox against a mocked 16k-driver catalogue, field-help popovers, printer credentials/CRUD, delayed requests, duplicate prevention and 409/503 recovery. It intercepts all admin API calls and refuses non-loopback base URLs. Use an externally available Playwright installation; it is test tooling, not a frontend/CDN dependency:
 
 ```sh
 # Serve the local application on loopback with a disposable data directory first.
@@ -201,11 +201,11 @@ The production Mac checkout and EDATEC source must be at the same deployed Git c
 - **Driver** is one searchable combobox. Type a model/PPD ID and explicitly choose a result; unmatched text cannot be submitted. Escape restores the previous selection, while the clear button removes it. Only installed drivers are listed; this does not install Canon drivers.
 - The **?** beside each field explains its purpose and examples. Open by click/touch/keyboard; close with Escape, the close button or an outside click. Advanced URI settings are collapsed; registered-printer defaults and client override permissions are generated from the queue's reported driver schema. See [docs/print-options.md](docs/print-options.md).
 - Requests display a pending state and disable competing controls to prevent duplicate submissions. Failures keep form values; mutations are never automatically retried.
-- Printer **Gỡ đăng ký** removes only the application's registration and grants, never the CUPS queue. Client **Sửa client / Xóa client** supports rename, grants and deletion. Both deletions require confirmation and are rejected while nonterminal or unknown jobs exist. Historical jobs and deduplication records remain; a deleted client's key stops working.
+- Printer **Gỡ đăng ký** removes the application registration and revokes its dedicated key, never the CUPS queue. Existing legacy client endpoints remain available for compatibility. Deletion is rejected while nonterminal or unknown jobs exist; history and deduplication records remain.
 
 ### Client test page (0.1.5)
 
-Open `/client` on the appliance, enter the API key issued from the admin Clients tab, select an assigned printer and upload PDF/ZPL. The page uses only existing scoped client APIs, never the admin password/session. It submits real print jobs; do not send to a physical printer until its driver is verified. The key is saved only in tab-scoped sessionStorage: reload reconnects automatically; disconnect or API 401 clears it. Never stored in localStorage or URLs. Files/pending requests remain memory-only and are not restored or automatically resubmitted. Printer-specific controls reflect only schema choices and client grants; see [docs/print-options.md](docs/print-options.md).
+Open `/client` on the appliance, enter the API key revealed in the admin Máy in tab, select an assigned printer and upload PDF/ZPL. The page uses only existing scoped client APIs, never the admin password/session. It submits real print jobs; do not send to a physical printer until its driver is verified. The key is saved only in tab-scoped sessionStorage: reload reconnects automatically; disconnect or API 401 clears it. Never stored in localStorage or URLs. Files/pending requests remain memory-only and are not restored or automatically resubmitted. Printer-specific controls reflect only schema choices and client grants; see [docs/print-options.md](docs/print-options.md).
 
 A lost/5xx submission response freezes the original request and offers explicit same-ID replay. It never automatically resubmits. Unique IDs use `crypto.getRandomValues`, including on LAN HTTP. History updates every four seconds while jobs are active; unknown outcomes need operator investigation. See [client guide](docs/client-guide.md).
 

@@ -28,6 +28,36 @@ def admin_headers(harness: Harness) -> dict[str, str]:
     return {"X-CSRF-Token": login.json()["csrf_token"]}
 
 
+def test_printer_key_is_scoped_retrievable_and_rotatable(harness: Harness) -> None:
+    printer_id = harness.printer["id"]
+    path = f"/admin/api/printers/{printer_id}/api-key"
+    assert harness.api.get(path).status_code == 401
+    headers = admin_headers(harness)
+    listed = harness.api.get("/admin/api/printers", headers=headers).json()[0]
+    assert "api_key" not in listed
+    response = harness.api.get(path, headers=headers)
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    old_key = response.json()["api_key"]
+    assert old_key.startswith("pa_")
+    scoped = harness.api.get("/api/v1/printers", headers={"Authorization": f"Bearer {old_key}"})
+    assert scoped.status_code == 200
+    assert [item["id"] for item in scoped.json()] == [printer_id]
+    rotate = f"/admin/api/printers/{printer_id}/rotate-key"
+    assert harness.api.post(rotate).status_code == 403
+    changed = harness.api.post(rotate, headers=headers)
+    assert changed.status_code == 200
+    new_key = changed.json()["api_key"]
+    assert new_key != old_key
+    assert harness.api.get(path, headers=headers).json()["api_key"] == new_key
+    assert harness.api.get("/api/v1/printers", headers={"Authorization": f"Bearer {old_key}"}).status_code == 401
+    assert harness.api.get("/api/v1/printers", headers={"Authorization": f"Bearer {new_key}"}).status_code == 200
+    assert harness.api.get("/api/v1/printers", headers={"Authorization": f"Bearer {harness.key}"}).status_code == 200
+    assert harness.api.delete(f"/admin/api/printers/{printer_id}", headers=headers).status_code == 200
+    assert harness.api.get(path, headers=headers).status_code == 404
+    assert harness.api.get("/api/v1/printers", headers={"Authorization": f"Bearer {new_key}"}).status_code == 401
+
+
 def accept_job(harness: Harness, key: str) -> tuple[dict[str, Any], int]:
     return harness.appliance.accept_job(
         client_id=harness.client_id,
@@ -110,8 +140,17 @@ def test_soft_delete_columns_migrate_existing_database(tmp_path: Path) -> None:
             db.execute("SELECT queue FROM printers WHERE id='printer-old'").fetchone()[0]
             == "legacy_queue"
         )
+        credential = db.execute(
+            "SELECT k.api_key,c.key_hash FROM printer_api_keys k "
+            "JOIN clients c ON c.id=k.client_id WHERE k.printer_id='printer-old'"
+        ).fetchone()
+        assert credential is not None
+        assert credential["key_hash"] == hash_api_key(credential["api_key"])
     finally:
         db.close()
+    store.initialize(path)
+    with store.connect(path) as db:
+        assert db.execute("SELECT COUNT(*) FROM printer_api_keys").fetchone()[0] == 1
 
 
 @pytest.mark.parametrize("status", ACTIVE_STATUSES)

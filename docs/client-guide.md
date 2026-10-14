@@ -2,7 +2,7 @@
 
 Mọi IP/hostname trong tài liệu chỉ là ví dụ. Lấy địa chỉ thực từ quản trị thiết bị để thay `<APPLIANCE_IP>`; không dùng địa chỉ mẫu như một giá trị triển khai.
 
-1. Quản trị mở **Clients → Thêm client** (modal), chọn máy bằng dropdown checkbox và lưu. Sao chép API key trong modal hiện một lần; key không xuất hiện trong toast.
+1. Quản trị mở **Máy in**, xem ID và bấm **Hiện** để lấy API key của máy cần dùng. Mỗi máy có một key riêng; có thể bấm **Ẩn**, **Sao chép** hoặc **Đổi key**.
 2. Client mở `http://<APPLIANCE_IP>:8081/client`, nhập key rồi bấm **Kết nối**. Không dùng mật khẩu quản trị hay SSH.
 3. Chọn máy, chọn PDF/ZPL, kiểm tra số bản và tùy chọn thực sự được cấp cho máy rồi bấm **Gửi lệnh in**. Đây là lệnh in thật, không phải xem trước. Các định dạng chỉ theo cấu hình máy; trang không chuyển PDF thành ZPL hay cài driver. Tùy chọn được sinh từ schema CUPS/driver riêng từng máy; “Dùng mặc định” bỏ hẳn ghi đè khỏi yêu cầu.
 4. Theo dõi **Lệnh của client**. Lệnh đang xử lý cập nhật mỗi 4 giây; nếu mất kết nối, bấm **Làm mới**. Lịch sử và máy in chỉ thuộc quyền của client đang dùng key.
@@ -19,7 +19,7 @@ Hướng dẫn không gọi thử API hay lấy dữ liệu máy in. Không nh�
 
 ## Khi có lỗi
 
-- **Không có máy:** nhờ quản trị cấp quyền trong tab Clients.
+- **Không có máy:** nhờ quản trị kiểm tra key và trạng thái trong tab Máy in.
 - **API key không hợp lệ:** kiểm tra key, hoặc nhờ quản trị cấp key mới. Key bị thu hồi/xóa không dùng được.
 - **Máy tạm dừng / lệnh đang giữ:** người vận hành kiểm tra máy và cho tiếp tục. Client không có quyền bỏ qua tạm dừng.
 - **File/tùy chọn không phù hợp:** chỉ gửi PDF hoặc UTF-8 ZPL đúng định dạng. Chỉ chọn giá trị driver thật sự hiển thị; trang không cung cấp điều khiển PDF cho ZPL. Xem [hướng dẫn tùy chọn theo driver](print-options.md) để biết cách quản trị cấu hình schema, khác biệt fit/fill và giới hạn constraint.

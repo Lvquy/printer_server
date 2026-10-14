@@ -9,7 +9,7 @@ const schema={availability:'available',source:'ppd',schema_fingerprint:'schema-o
 (async()=>{const browser=await chromium.launch({headless:true,...(process.env.CHROME_EXECUTABLE?{executablePath:process.env.CHROME_EXECUTABLE}:{})});try{
  const page=await browser.newPage({viewport:{width:1280,height:900}}),errors=[],external=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(!r.url().startsWith(base+'/'))external.push(r.url());});
- const state={printers:[{...printer},{...printer,id:'p-two',name:'Máy kho',queue:'pa_second'}],clients:[],writes:[],delay:0,fail:0,reads:0};
+ const state={printers:[{...printer},{...printer,id:'p-two',name:'Máy kho',queue:'pa_second'}],keys:{'p-one':key,'p-two':'pa_warehouse'},writes:[],delay:0,fail:0,reads:0};
  let approve=false;page.on('dialog',d=>approve?d.accept():d.dismiss());
  const handler=async route=>{
   const req=route.request(),p=new URL(req.url()).pathname,method=req.method();let data,status=200;
@@ -19,9 +19,7 @@ const schema={availability:'available',source:'ppd',schema_fingerprint:'schema-o
    else if(p==='/admin/api/printers'){data={...printer,...body,id:'created',queue:'pa_created'};state.printers.push(data);}
    else if(p.startsWith('/admin/api/printers/')&&method==='PUT'){data=state.printers.find(x=>x.id===p.split('/').at(-1));Object.assign(data,body);}
    else if(p.startsWith('/admin/api/printers/')&&method==='DELETE'){state.printers=state.printers.filter(x=>x.id!==p.split('/').at(-1));data={deleted:true};}
-   else if(p==='/admin/api/clients'){data={id:'client-created',...body,revoked:false,api_key:key};state.clients.push({...data});}
-   else if(p.startsWith('/admin/api/clients/')&&method==='PUT'){data=state.clients.find(x=>x.id===p.split('/').at(-1));Object.assign(data,body);}
-   else if(p.startsWith('/admin/api/clients/')&&method==='DELETE'){state.clients=state.clients.filter(x=>x.id!==p.split('/').at(-1));data={deleted:true};}
+   else if(p.endsWith('/rotate-key')){const id=p.split('/')[4];state.keys[id]='pa_rotated_key';data={id,api_key:state.keys[id]};}
    else if(p==='/admin/api/settings')data=body;
    else if(p==='/admin/api/logout')data={ok:true};
    else throw Error(`Unexpected write ${method} ${p}`);
@@ -29,9 +27,8 @@ const schema={availability:'available',source:'ppd',schema_fingerprint:'schema-o
   else if(p==='/admin/api/status')data={cups:{available:true},disk:{free_bytes:500000000,total_bytes:1000000000},jobs:{queued:0,held:0,submitted:0,unknown:0}};
   else if(p==='/admin/api/printers')data=state.printers;
   else if(p.endsWith('/capabilities')){state.reads++;data={...schema,printer_id:p.split('/')[4]};}
+  else if(p.endsWith('/api-key')){const id=p.split('/')[4];data={id,api_key:state.keys[id]};}
   else if(p.startsWith('/admin/api/printers/'))data=state.printers.find(x=>x.id===p.split('/').at(-1));
-  else if(p==='/admin/api/clients')data=state.clients;
-  else if(p.startsWith('/admin/api/clients/'))data=state.clients.find(x=>x.id===p.split('/').at(-1));
   else if(p==='/admin/api/jobs')data=[];
   else if(p==='/admin/api/settings')data={max_upload_bytes:10485760,max_pending_jobs:100,min_free_bytes:104857600,history_retention_days:30};
   else if(p==='/admin/api/discovery'){await new Promise(r=>setTimeout(r,200));data={devices:[{uri:printer.device_uri,info:'Canon mock'}],drivers,queues:{existing:{}}};}
@@ -40,7 +37,7 @@ const schema={availability:'available',source:'ppd',schema_fingerprint:'schema-o
  };await page.route(`${base}/admin/api/**`,handler);
  const idle=()=>page.locator('#busy-status').waitFor({state:'hidden'}),modal=page.locator('#entity-modal');
  await page.goto(base);await page.locator('#printers article[data-id]').first().waitFor({state:'attached'});await idle();
- assert.equal(await page.getByRole('tab').count(),6);await page.getByRole('tab',{name:'Máy in',exact:true}).click();await page.keyboard.press('ArrowRight');assert.equal(await page.locator('#tab-clients').getAttribute('aria-selected'),'true');await page.keyboard.press('End');assert.equal(await page.locator('#tab-api-guide').getAttribute('aria-selected'),'true');await page.keyboard.press('Home');
+ assert.equal(await page.getByRole('tab').count(),5);await page.getByRole('tab',{name:'Máy in',exact:true}).click();await page.keyboard.press('ArrowRight');assert.equal(await page.locator('#tab-jobs').getAttribute('aria-selected'),'true');await page.keyboard.press('End');assert.equal(await page.locator('#tab-api-guide').getAttribute('aria-selected'),'true');await page.keyboard.press('Home');
  await page.getByRole('tab',{name:'Máy in',exact:true}).click();await page.reload();await idle();
  await page.locator('#discover').click();assert.equal(await page.locator('#discover').isDisabled(),true);await idle();assert.equal(await modal.isVisible(),true);assert.equal(await page.locator('#import-form').isVisible(),false);
  const search=page.locator('#driver-search'),hidden=page.locator('#driver');await search.click();assert.ok(await page.locator('#driver-list [role="option"]').count()<=200);assert.equal(await hidden.inputValue(),'');
@@ -58,21 +55,16 @@ const schema={availability:'available',source:'ppd',schema_fingerprint:'schema-o
  await modal.locator('.option-common select').selectOption('A5');await modal.getByRole('button',{name:'Lưu cấu hình',exact:true}).click();await idle();assert.deepEqual(state.writes.at(-1).body.default_options,{PageSize:'A5'});assert.deepEqual(state.writes.at(-1).body.allowed_options,{PageSize:['A5']});assert.ok(!Object.hasOwn(state.writes.at(-1).body,'driver'));
  await card.getByRole('button',{name:'Sửa cấu hình'}).click();await modal.locator('input').first().fill('Chưa lưu');await modal.getByRole('button',{name:'Cập nhật danh sách driver'}).click();await idle();assert.equal(await modal.locator('input').first().inputValue(),'Chưa lưu');await modal.getByRole('button',{name:'Hủy',exact:true}).click();
  const remove=page.locator('#printers article[data-id="created"]').getByRole('button',{name:'Gỡ đăng ký'});approve=false;const before=state.writes.length;await remove.click();await idle();assert.equal(state.writes.length,before);approve=true;state.fail=409;await remove.click();await idle();assert.equal(await remove.isVisible(),true);await remove.click();await idle();assert.equal(await page.locator('#printers article[data-id="created"]').count(),0);
- await page.getByRole('tab',{name:'Clients',exact:true}).click();assert.equal(await page.locator('#client-form').isVisible(),false);await page.locator('#add-client').click();await page.locator('#client-name').fill('Odoo kiểm thử');
- await page.locator('#client-printers-toggle').click();await modal.getByRole('searchbox',{name:'Tìm máy được cấp'}).fill('may kho');await modal.getByRole('checkbox',{name:'Máy kho',exact:true}).check();await modal.getByRole('searchbox',{name:'Tìm máy được cấp'}).fill('');await modal.getByRole('checkbox',{name:'Canon văn phòng',exact:true}).check();assert.equal(await modal.locator('.grant-chip').count(),2);await page.keyboard.press('Escape');assert.equal(await modal.isVisible(),true);await modal.getByRole('button',{name:'Bỏ cấp: Máy kho'}).click();assert.equal(await modal.locator('.grant-chip').count(),1);
- await page.locator('#client-printers-toggle').click(); // Submit while dropdown remains open: must not shift under the pointer.
- await page.locator('#client-form button[type="submit"]').click();await idle();assert.deepEqual(state.writes.at(-1).body.printer_ids,['p-one']);assert.equal(await modal.locator('textarea[aria-label="API key mới"]').inputValue(),key);assert.ok(!(await page.locator('#notice').textContent()).includes(key));await modal.getByRole('button',{name:'Đóng modal'}).click();assert.equal(await page.locator('textarea[aria-label="API key mới"]').count(),0);
- const client=page.locator('#clients article');await client.getByRole('button',{name:'Sửa client'}).click();state.clients[0].printer_ids=[];await modal.locator('input').first().fill('Client đã sửa');await modal.getByRole('button',{name:'Lưu client'}).click();await idle();assert.ok(!Object.hasOwn(state.writes.at(-1).body,'printer_ids'));assert.deepEqual(state.clients[0].printer_ids,[]);
- await client.getByRole('button',{name:'Sửa client'}).click();await modal.locator('.grant-toggle').click();await modal.getByRole('searchbox',{name:'Tìm máy được cấp'}).press('ArrowDown');await page.keyboard.press('Space');await page.keyboard.press('Escape');await modal.getByRole('button',{name:'Lưu client'}).click();await idle();assert.deepEqual(state.writes.at(-1).body.printer_ids,['p-one']);
- state.fail=409;await client.getByRole('button',{name:'Xóa client'}).click();await idle();assert.equal(await client.count(),1);await client.getByRole('button',{name:'Xóa client'}).click();await idle();assert.equal(await page.locator('#clients article').count(),0);
+ const credential=card.locator('.printer-credential');assert.match(await credential.textContent(),/p-one/);assert.equal(await credential.locator('input').getAttribute('type'),'password');assert.equal(await credential.textContent().then(x=>x.includes(key)),false);
+ await credential.getByRole('button',{name:'Hiện'}).click();await idle();assert.equal(await credential.locator('input').inputValue(),key);await credential.getByRole('button',{name:'Ẩn'}).click();assert.equal(await credential.locator('input').getAttribute('type'),'password');assert.equal(await credential.locator('input').inputValue(),'••••••••••••••••');
+ await credential.getByRole('button',{name:'Đổi key'}).click();await idle();assert.equal(await credential.locator('input').inputValue(),'pa_rotated_key');assert.ok(!(await page.locator('#notice').textContent()).includes('pa_rotated_key'));
  await page.getByRole('tab',{name:'Cấu hình',exact:true}).click();await page.locator('[name="max_pending_jobs"]').fill('111');await page.locator('#settings-form button[type="submit"]').click();await idle();assert.equal(state.writes.at(-1).body.max_pending_jobs,111);
  await page.mouse.move(20,500);await page.waitForFunction(()=>!document.querySelector('#notice .toast'),{},{timeout:7000});
- await page.getByRole('tab',{name:'Clients',exact:true}).click();await page.locator('#add-client').click();await page.locator('#client-printers-toggle').click();
+ await page.getByRole('tab',{name:'Máy in',exact:true}).click();
  if(process.env.UI_ARTIFACT_DIR){fs.mkdirSync(process.env.UI_ARTIFACT_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.UI_ARTIFACT_DIR,'admin-desktop.png'),fullPage:true});}
- await modal.getByRole('button',{name:'Đóng modal'}).click();
- const mobile=await browser.newPage({viewport:{width:390,height:844}});await mobile.route(`${base}/admin/api/**`,handler);await mobile.goto(base+'/#tab=clients');await mobile.locator('#busy-status').waitFor({state:'hidden'});await mobile.locator('#add-client').click();await mobile.locator('#client-printers-toggle').click();
- assert.ok(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));assert.ok(await mobile.locator('#entity-modal').evaluate(x=>x.scrollWidth<=x.clientWidth+1));
+ const mobile=await browser.newPage({viewport:{width:390,height:844}});await mobile.route(`${base}/admin/api/**`,handler);await mobile.goto(base+'/#tab=printers');await mobile.locator('#busy-status').waitFor({state:'hidden'});
+ assert.ok(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));assert.equal(await mobile.locator('.printer-credential input').first().getAttribute('type'),'password');
  if(process.env.UI_ARTIFACT_DIR)await mobile.screenshot({path:path.join(process.env.UI_ARTIFACT_DIR,'admin-mobile.png')});await mobile.close();
  await page.locator('#logout').click();await idle();assert.equal(await page.locator('#dashboard').isVisible(),false);assert.equal(await page.locator('#notice').isVisible(),false);assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
- console.log('PASS: tabs/16k driver/help/create-import/busy/errors; modal view/edit/dirty/focus; schema defaults+rights; multi-grant search/chips/keyboard; concurrent revocation; key modal; CRUD; toast; mobile; logout. All APIs mocked.');
+ console.log('PASS: tabs/16k driver/help/create-import/busy/errors; modal view/edit/dirty/focus; schema defaults+rights; printer key reveal/rotation; CRUD; toast; mobile; logout. All APIs mocked.');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1);});
