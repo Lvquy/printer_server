@@ -86,6 +86,10 @@ BACKUP="/var/backups/print-appliance-secondary/$STAMP"
 [[ ! -e $PREV_SOURCE && ! -e $PREV_VENV && ! -e $BACKUP ]] \
   || fail 'A previous deployment already uses this timestamp; retry in a second.'
 STAGE=$(mktemp -d "$APP/.deploy.XXXXXXXX")
+# mktemp creates a root-only directory; the service account must traverse it
+# for the read-only CUPS import check before activation.
+chgrp print-appliance-secondary "$STAGE"
+chmod 0750 "$STAGE"
 STOPPED=0
 ACTIVATING=0
 SUCCEEDED=0
