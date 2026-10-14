@@ -48,6 +48,8 @@ trước, rồi khởi động lại service cũ. Bản sao dữ liệu được
 `/var/backups/print-appliance-secondary/<thời điểm>/data`; không tự phục hồi cơ
 sở dữ liệu cũ vì có thể làm mất lệnh in phát sinh sau khi service mới chạy.
 Kiểm tra log và dữ liệu trước khi phục hồi thủ công.
+Mỗi lần deploy giữ một bản mã/môi trường cũ và một bản sao dữ liệu; kiểm tra dung
+lượng đĩa và chỉ xóa các bản cũ sau khi đã xác nhận không cần khôi phục.
 
 ## Kiểm tra sau deploy
 

@@ -118,12 +118,16 @@ cleanup() {
 trap cleanup EXIT
 
 git clone --quiet --no-local "$BUNDLE" "$STAGE/source"
-git -C "$STAGE/source" checkout --quiet --detach "$COMMIT"
+git -c advice.detachedHead=false -C "$STAGE/source" checkout --quiet --detach "$COMMIT"
 git -C "$STAGE/source" remote set-url origin https://github.com/Lvquy/printer_server.git
 /usr/bin/python3 -m venv --system-site-packages "$STAGE/.venv"
 VIRTUAL_ENV="$STAGE/.venv" "$UV" sync \
   --project "$STAGE/source" --active --frozen --no-dev --no-editable --python /usr/bin/python3
 runuser -u print-appliance-secondary -- "$STAGE/.venv/bin/python" -c 'import cups; print("CUPS binding OK")'
+DATA_BYTES=$(du -sb "$DATA" | awk '{print $1}')
+AVAILABLE_BYTES=$(df -B1 --output=avail /var/backups | tail -1)
+((AVAILABLE_BYTES >= DATA_BYTES + 100 * 1024 * 1024)) \
+  || fail 'Not enough disk space for a full data backup and 100 MiB reserve.'
 
 systemctl stop "$SERVICE"
 STOPPED=1

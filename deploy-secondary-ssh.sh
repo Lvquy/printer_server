@@ -39,9 +39,9 @@ STAGE=$(mktemp -d)
 REMOTE_ARCHIVE="/tmp/print-appliance-secondary-${COMMIT:0:12}-$RANDOM.tgz"
 cleanup() { rm -f -- "$STAGE/source.bundle" "$STAGE/update-secondary.sh" "$STAGE/payload.tgz"; rmdir -- "$STAGE"; }
 trap cleanup EXIT
-git -C "$SOURCE" bundle create "$STAGE/source.bundle" HEAD
+git -C "$SOURCE" bundle create --quiet "$STAGE/source.bundle" HEAD
 cp "$SOURCE/update-secondary.sh" "$STAGE/update-secondary.sh"
-COPYFILE_DISABLE=1 tar -czf "$STAGE/payload.tgz" -C "$STAGE" source.bundle update-secondary.sh
+COPYFILE_DISABLE=1 tar --no-xattrs -czf "$STAGE/payload.tgz" -C "$STAGE" source.bundle update-secondary.sh
 
 echo "Sending commit $COMMIT to $TARGET; mode: $MODE"
 scp "$STAGE/payload.tgz" "$TARGET:$REMOTE_ARCHIVE"
