@@ -138,6 +138,25 @@ mv -- "$APP/source" "$PREV_SOURCE"
 mv -- "$APP/.venv" "$PREV_VENV"
 mv -- "$STAGE/source" "$APP/source"
 mv -- "$STAGE/.venv" "$APP/.venv"
+# Console scripts created by uv contain the staging venv path in their shebang.
+# Repoint them after the atomic move, before systemd tries to execute one.
+/usr/bin/python3 - "$STAGE/.venv/bin" "$APP/.venv/bin" <<'PY'
+from pathlib import Path
+import sys
+
+old = f"#!{sys.argv[1]}/".encode()
+new = f"#!{sys.argv[2]}/".encode()
+for script in Path(sys.argv[2]).iterdir():
+    if not script.is_file() or script.is_symlink():
+        continue
+    with script.open("rb") as stream:
+        first = stream.readline(512)
+        if not first.startswith(old):
+            continue
+        rest = stream.read()
+    script.write_bytes(new + first[len(old):] + rest)
+PY
+"$APP/.venv/bin/print-appliance" --help >/dev/null
 systemctl start "$SERVICE"
 
 LISTEN_CONF="/etc/systemd/system/$SERVICE.d/listen.conf"
