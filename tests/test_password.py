@@ -79,7 +79,6 @@ def test_change_password_protected_atomic_and_revokes_all_sessions(harness: Harn
         {"current_password": None},
         {"current_password": [CURRENT]},
         {"current_password": "x" * 1025},
-        {"new_password": "short", "confirm_password": "short"},
         {"new_password": "x" * 1025, "confirm_password": "x" * 1025},
         {"new_password": None},
         {"confirm_password": False},
@@ -96,6 +95,18 @@ def test_invalid_change_preserves_password_and_sessions(harness: Harness, update
     assert snapshot(harness) == before
     assert harness.api.get("/admin/api/session").json()["authenticated"] is True
     assert CURRENT not in response.text and NEW not in response.text
+
+
+def test_change_password_accepts_a_short_password(harness: Harness):
+    _bootstrap(harness.appliance.settings, CURRENT)
+    headers = login(harness)
+    response = harness.api.post(
+        URL,
+        json=payload(new_password="1", confirm_password="1"),
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert harness.api.post("/admin/api/login", json={"password": "1"}).status_code == 200
 
 
 def test_wrong_current_password_is_bounded_without_destroying_session(harness: Harness):

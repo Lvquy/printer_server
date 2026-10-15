@@ -26,8 +26,6 @@ def _settings(args: argparse.Namespace) -> Settings:
 
 
 def _bootstrap(settings: Settings, password: str) -> None:
-    if len(password) < 12:
-        raise ValueError("Admin password must be at least 12 characters")
     store.initialize(settings.database_path)
     salt = secrets.token_bytes(16)
     digest = password_hash(password, salt)
@@ -89,7 +87,7 @@ def main() -> None:
 
     try:
         if args.command == "admin-password":
-            first = getpass.getpass("New admin password (12+ characters): ")
+            first = getpass.getpass("New admin password: ")
             second = getpass.getpass("Confirm admin password: ")
             if first != second:
                 raise ValueError("Passwords do not match")

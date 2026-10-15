@@ -494,8 +494,8 @@ def create_app(
         # Validate manually so error responses never echo password values.
         if not isinstance(current, str) or not 1 <= len(current) <= 1024:
             raise HTTPException(422, "Current password is required (maximum 1024 characters)")
-        if not isinstance(new, str) or not 12 <= len(new) <= 1024:
-            raise HTTPException(422, "New password must contain 12 to 1024 characters")
+        if not isinstance(new, str) or not 1 <= len(new) <= 1024:
+            raise HTTPException(422, "New password is required (maximum 1024 characters)")
         if not isinstance(confirmation, str) or confirmation != new:
             raise HTTPException(422, "New password confirmation does not match")
         if new == current:
