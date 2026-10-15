@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install a Print Appliance instance from this repository checkout.
+# Install a Print Appliance instance on Ubuntu 24.04 from this repository checkout.
 # Does not create/import printers, change CUPS queues, or submit print jobs.
 set -euo pipefail
 
@@ -7,6 +7,7 @@ usage() {
   cat <<'EOF'
 Usage: sudo ./install-secondary.sh [--check] [--host DEVICE_IPV4] [--port PORT]
 
+Ubuntu 24.04 LTS is required.
 Copy .env.example to .env and set PRINT_APPLIANCE_HOST / PRINT_APPLIANCE_PORT.
 Set PRINT_APPLIANCE_SERVICE_NAME and PRINT_APPLIANCE_ADMIN_PASSWORD as well.
 --host and --port can override .env for one invocation.
@@ -52,11 +53,11 @@ while (($#)); do
   esac
 done
 
-[[ $(uname -s) == Linux ]] || fail 'Run on the Debian device.'
+[[ $(uname -s) == Linux ]] || fail 'Run on the Ubuntu device.'
 [[ $EUID == 0 ]] || fail 'Run with sudo.'
 # shellcheck disable=SC1091
 source /etc/os-release
-[[ $ID == debian && $VERSION_ID == 12 ]] || fail 'Debian 12 is required.'
+[[ $ID == ubuntu && $VERSION_ID == 24.04 ]] || fail 'Ubuntu 24.04 LTS is required.'
 [[ -n $HOST ]] || fail "Create $ENV_FILE from .env.example and set PRINT_APPLIANCE_HOST."
 [[ -n $PORT ]] || fail "Create $ENV_FILE from .env.example and set PRINT_APPLIANCE_PORT."
 [[ $SERVICE_NAME =~ ^[a-z][a-z0-9-]{0,30}$ ]] \

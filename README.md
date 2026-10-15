@@ -4,16 +4,17 @@ Thiết bị quản lý in chạy trên Linux/Pi trong mạng nội bộ. Ứng 
 API, lưu lệnh in và gửi cho CUPS. Mỗi máy in đăng ký có một `printer_id` và API
 key riêng.
 
-Ứng dụng chạy bằng **systemd + Python + CUPS**, không dùng Docker. CUPS quản lý
+Nhánh này cài trên **Ubuntu 24.04 LTS** bằng **systemd + Python + CUPS**, không
+dùng Docker. CUPS quản lý
 driver, kết nối máy in và hàng đợi; Print Appliance quản lý giao diện, API và
 lịch sử lệnh in.
 
-## Cài lần đầu trên Pi
+## Cài lần đầu trên Ubuntu
 
 Ứng dụng được cài và truy cập qua IP, cổng cấu hình trong `.env`; mẫu dùng cổng
 `8082`.
 
-### 1. SSH vào Pi
+### 1. SSH vào máy Ubuntu
 
 Chạy trên Mac:
 
@@ -21,7 +22,7 @@ Chạy trên Mac:
 ssh pi@PI_IP
 ```
 
-Thay `PI_IP` bằng IP của Pi, ví dụ `192.168.0.123`.
+Thay `PI_IP` bằng IP của máy Ubuntu, ví dụ `192.168.0.123`.
 
 ### 2. Tải source code
 
@@ -44,7 +45,7 @@ cd /opt
 ```
 
 ```sh
-git clone https://github.com/Lvquy/printer_server.git
+git clone --branch ubuntu https://github.com/Lvquy/printer_server.git
 ```
 
 ```sh
@@ -131,6 +132,24 @@ Các lệnh trên dùng tên mẫu trong `.env.example`. Nếu đổi
 
 Mỗi API key chỉ được dùng với đúng máy in đã tạo ra nó. Có thể đổi key tại màn
 hình máy in khi cần.
+
+## Cập nhật code trên Ubuntu
+
+Sau khi code mới đã được push vào nhánh `ubuntu`, chạy trên máy Ubuntu:
+
+```sh
+cd /opt/print-appliance-secondary/source
+```
+
+```sh
+./ci_cd.sh --check
+```
+
+```sh
+./ci_cd.sh
+```
+
+Script tự lấy code nhánh `ubuntu`, build lại và khởi động lại service.
 
 ## Kiểm tra khi không vào được trang web
 

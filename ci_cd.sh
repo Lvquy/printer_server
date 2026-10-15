@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Update the installed Print Appliance from its GitHub main branch.
+# Update the installed Print Appliance from its GitHub ubuntu branch.
 # Run this script from the installed source directory.
 set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: sudo ./ci_cd.sh [--branch main] [--check]
+Usage: sudo ./ci_cd.sh [--branch ubuntu] [--check]
 
 Fetch a branch from origin, build a fresh environment, and activate it for the
 configured service. --check only compares commits and checks
@@ -14,7 +14,7 @@ EOF
 }
 fail() { echo "ERROR: $*" >&2; exit 1; }
 
-BRANCH=main
+BRANCH=ubuntu
 CHECK=0
 while (($#)); do
   case $1 in
