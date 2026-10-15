@@ -18,7 +18,25 @@ WireGuard UDP port:  51820
 Thay `VPS_PUBLIC_IP` bằng public IP thực tế của VPS. Không đưa private key vào
 Git, Odoo hoặc chat.
 
-## 1. Tạo key trên mỗi máy
+## 1. Cài WireGuard trên VPS và Pi
+
+Trên **VPS Odoo**, chạy từng lệnh:
+
+```sh
+sudo -i
+```
+
+```sh
+apt-get update
+```
+
+```sh
+apt-get install -y wireguard
+```
+
+Trên **Pi**, chạy đúng ba lệnh trên. Sau đó mới làm các bước cấu hình bên dưới.
+
+## 2. Tạo key trên mỗi máy
 
 Chạy riêng từng lệnh trên **VPS** và **Pi** nếu máy chưa có key:
 
@@ -41,7 +59,7 @@ cat /etc/wireguard/wg0.pub
 Ghi public key của VPS và Pi để điền vào cấu hình ở hai bước kế tiếp. Không
 chia sẻ nội dung `wg0.key`.
 
-## 2. Cấu hình VPS Odoo
+## 3. Cấu hình VPS Odoo
 
 Trên VPS, tạo hoặc sửa `/etc/wireguard/wg0.conf`:
 
@@ -66,7 +84,7 @@ ufw allow 51820/udp
 
 Mở cùng port UDP trong firewall của nhà cung cấp VPS nếu có.
 
-## 3. Cấu hình Pi
+## 4. Cấu hình Pi
 
 Trên Pi, tạo hoặc sửa `/etc/wireguard/wg0.conf`:
 
@@ -84,7 +102,7 @@ PersistentKeepalive = 25
 
 `PersistentKeepalive = 25` giúp Pi duy trì tunnel khi nằm sau router/NAT.
 
-## 4. Bật tunnel và tự khởi động cùng máy
+## 5. Bật tunnel và tự khởi động cùng máy
 
 Chạy lệnh này một lần trên **VPS**:
 
@@ -106,7 +124,7 @@ systemctl is-active wg-quick@wg0
 
 Kết quả phải là `active`.
 
-## 5. Kiểm tra kết nối
+## 6. Kiểm tra kết nối
 
 Trên Pi:
 
@@ -130,7 +148,7 @@ curl -i --max-time 5 http://192.168.0.123:8085/client
 
 Kết quả cần có `HTTP/1.1 200 OK`.
 
-## 6. Điền URL vào Odoo
+## 7. Điền URL vào Odoo
 
 Trong cấu hình máy in của Direct Print trên Odoo, dùng:
 
