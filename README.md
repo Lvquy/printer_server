@@ -4,7 +4,8 @@ Thiết bị quản lý in chạy trên Linux/Pi trong mạng nội bộ. Ứng 
 API, lưu lệnh in và gửi cho CUPS. Mỗi máy in đăng ký có một `printer_id` và API
 key riêng.
 
-Ứng dụng chạy bằng **systemd + Python + CUPS**, không dùng Docker. CUPS quản lý
+Ứng dụng chạy trên **Debian 12, Ubuntu 22.04 hoặc Ubuntu 24.04** bằng
+**systemd + Python + CUPS**, không dùng Docker. CUPS quản lý
 driver, kết nối máy in và hàng đợi; Print Appliance quản lý giao diện, API và
 lịch sử lệnh in.
 

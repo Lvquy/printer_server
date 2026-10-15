@@ -56,7 +56,10 @@ done
 [[ $EUID == 0 ]] || fail 'Run with sudo.'
 # shellcheck disable=SC1091
 source /etc/os-release
-[[ $ID == debian && $VERSION_ID == 12 ]] || fail 'Debian 12 is required.'
+case "$ID:$VERSION_ID" in
+  debian:12|ubuntu:22.04|ubuntu:24.04) ;;
+  *) fail 'Use Debian 12, Ubuntu 22.04, or Ubuntu 24.04.' ;;
+esac
 [[ -n $HOST ]] || fail "Create $ENV_FILE from .env.example and set PRINT_APPLIANCE_HOST."
 [[ -n $PORT ]] || fail "Create $ENV_FILE from .env.example and set PRINT_APPLIANCE_PORT."
 [[ $SERVICE_NAME =~ ^[a-z][a-z0-9-]{0,30}$ ]] \
