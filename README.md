@@ -10,7 +10,8 @@ lịch sử lệnh in.
 
 ## Cài lần đầu trên Pi
 
-Ứng dụng được cài và truy cập qua cổng `8082`.
+Ứng dụng được cài và truy cập qua IP, cổng cấu hình trong `.env`; mẫu dùng cổng
+`8082`.
 
 ### 1. SSH vào Pi
 
@@ -60,15 +61,24 @@ cp .env.example .env
 nano .env
 ```
 
-Sửa hai giá trị trong file:
+Sửa bốn giá trị trong file:
 
 ```dotenv
 PRINT_APPLIANCE_HOST=192.168.0.123
 PRINT_APPLIANCE_PORT=8082
+PRINT_APPLIANCE_SERVICE_NAME=print-appliance-secondary
+PRINT_APPLIANCE_ADMIN_PASSWORD=ĐẶT_MỘT_MẬT_KHẨU_RIÊNG_ÍT_NHẤT_12_KÝ_TỰ
 ```
 
 `PRINT_APPLIANCE_HOST` là IP LAN của Pi. File `.env` chỉ nằm trên Pi, đã được
-Git bỏ qua và không được đưa lên repository.
+Git bỏ qua và không được đưa lên repository. `PRINT_APPLIANCE_SERVICE_NAME` là
+tên dùng trong lệnh `systemctl`; không thêm `.service` vào giá trị này.
+
+Vì `.env` có mật khẩu quản trị, giới hạn quyền đọc file:
+
+```sh
+chmod 600 .env
+```
 
 ### 4. Kiểm tra trước khi cài
 
@@ -86,8 +96,7 @@ Nếu thấy `Preflight passed`, tiếp tục bước cài đặt.
 
 Khi hiện câu hỏi xác nhận, gõ `y` rồi nhấn Enter.
 
-Script tạo mật khẩu quản trị mới và chỉ in mật khẩu đó một lần. Lưu ngay mật
-khẩu này.
+Mật khẩu trang quản trị lấy từ `PRINT_APPLIANCE_ADMIN_PASSWORD` trong `.env`.
 
 ### 6. Khởi động và kiểm tra
 
@@ -109,9 +118,12 @@ Mở trên trình duyệt trong cùng LAN:
 
 Mở URL theo cấu hình trong `.env`, ví dụ: `http://192.168.0.123:8082/`.
 
+Các lệnh trên dùng tên mẫu trong `.env.example`. Nếu đổi
+`PRINT_APPLIANCE_SERVICE_NAME`, thay `print-appliance-secondary` bằng tên đó.
+
 ## Cấu hình máy in và API key
 
-1. Đăng nhập trang quản trị bằng mật khẩu được tạo khi cài.
+1. Đăng nhập trang quản trị bằng mật khẩu trong `.env`.
 2. Vào **Máy in** → **Thêm máy in**.
 3. Chọn thiết bị và driver đã có trong CUPS, sau đó lưu.
 4. Tại thẻ máy in, sao chép **ID máy in** và bấm **Hiện** để lấy **API key**.
@@ -146,11 +158,13 @@ journalctl -u print-appliance-secondary.service -n 100 --no-pager
 
 ```text
 /opt/printer_server/                         Source checkout dùng để cài lần đầu
-/opt/print-appliance-secondary/source/       Source đang chạy ở cổng 8082
-/opt/print-appliance-secondary/.venv/        Python environment
-/var/lib/print-appliance-secondary/          Database, API key, cấu hình và lệnh in
-/etc/systemd/system/print-appliance-secondary.service
+/opt/PRINT_APPLIANCE_SERVICE_NAME/source/    Source đang chạy
+/opt/PRINT_APPLIANCE_SERVICE_NAME/.venv/     Python environment
+/var/lib/PRINT_APPLIANCE_SERVICE_NAME/       Database, API key, cấu hình và lệnh in
+/etc/systemd/system/PRINT_APPLIANCE_SERVICE_NAME.service
 ```
+
+Thay `PRINT_APPLIANCE_SERVICE_NAME` bằng giá trị đã đặt trong `.env`.
 
 ## Gửi PDF qua API
 

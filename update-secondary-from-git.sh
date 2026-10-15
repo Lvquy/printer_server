@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Update the isolated secondary appliance from its GitHub main branch.
-# Run this script on the Pi from /opt/print-appliance-secondary/source.
+# Update the installed Print Appliance from its GitHub main branch.
+# Run this script from the installed source directory.
 set -euo pipefail
 
 usage() {
   cat <<'EOF'
 Usage: sudo ./update-secondary-from-git.sh [--branch main] [--check]
 
-Fetch a branch from origin, build a fresh environment, and activate it for
-print-appliance-secondary.service. --check only compares commits and checks
+Fetch a branch from origin, build a fresh environment, and activate it for the
+configured service. --check only compares commits and checks
 for unresolved print jobs; it does not alter the checkout or service.
 EOF
 }
@@ -29,15 +29,24 @@ done
 [[ $BRANCH =~ ^[A-Za-z0-9._/-]+$ ]] && [[ $BRANCH != -* ]] \
   || fail 'Branch name is invalid.'
 
-APP=/opt/print-appliance-secondary
-DATA=/var/lib/print-appliance-secondary
-SERVICE=print-appliance-secondary.service
-ACCOUNT=print-appliance-secondary
 SOURCE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-[[ $SOURCE == "$APP/source" ]] \
-  || fail "Run the installed script at $APP/source/update-secondary-from-git.sh."
+APP=$(dirname "$SOURCE")
+SERVICE_NAME=$(basename "$APP")
+[[ $APP == /opt/* && $SOURCE == "$APP/source" ]] \
+  || fail 'Run the installed script from /opt/SERVICE_NAME/source/.'
+[[ $SERVICE_NAME =~ ^[a-z][a-z0-9-]{0,30}$ ]] \
+  || fail 'The installed service name is invalid.'
+ENV_FILE="$APP/.env"
+if [[ -f $ENV_FILE ]]; then
+  CONFIGURED_SERVICE_NAME=$(sed -n 's/^PRINT_APPLIANCE_SERVICE_NAME=//p' "$ENV_FILE" | tail -1)
+  [[ -z $CONFIGURED_SERVICE_NAME || $CONFIGURED_SERVICE_NAME == "$SERVICE_NAME" ]] \
+    || fail "Service name in $ENV_FILE does not match $APP."
+fi
+DATA="/var/lib/$SERVICE_NAME"
+SERVICE="$SERVICE_NAME.service"
+ACCOUNT=$SERVICE_NAME
 [[ -d $DATA && -x $APP/.venv/bin/python && -f $DATA/appliance.sqlite3 ]] \
-  || fail 'Secondary instance is not installed completely.'
+  || fail 'Print Appliance is not installed completely.'
 command -v git >/dev/null || fail 'Git is required.'
 command -v curl >/dev/null || fail 'curl is required for the health check.'
 [[ -z $(git -c safe.directory="$SOURCE" -C "$SOURCE" status --porcelain) ]] \
@@ -122,7 +131,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Existing secondary installations were created at a detached commit. Make a
+# Existing installations were created at a detached commit. Make a
 # local branch once, then use fast-forward-only pulls on later updates.
 if git -c safe.directory="$SOURCE" -C "$SOURCE" show-ref --verify --quiet "refs/heads/$BRANCH"; then
   git -c safe.directory="$SOURCE" -C "$SOURCE" switch --quiet "$BRANCH"
@@ -153,7 +162,7 @@ STOPPED=1
 ACTIVE=$(active_jobs)
 [[ $ACTIVE == 0 ]] || fail "Found $ACTIVE active or unresolved jobs after stopping; update cancelled."
 STAMP=$(date -u +%Y%m%d%H%M%S)
-BACKUP="/var/backups/print-appliance-secondary/$STAMP"
+BACKUP="/var/backups/$SERVICE_NAME/$STAMP"
 install -d -m 0700 "$BACKUP"
 cp -a -- "$DATA" "$BACKUP/data"
 
