@@ -5,17 +5,38 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: sudo ./install-secondary.sh --host DEVICE_IPV4 [--port 8082] [--check]
+Usage: sudo ./install-secondary.sh [--check] [--host DEVICE_IPV4] [--port PORT]
 
-Install a separate print-appliance-secondary service, account and data directory.
---check validates the host, free port, checkout and target paths without changes.
+Copy .env.example to .env and set PRINT_APPLIANCE_HOST / PRINT_APPLIANCE_PORT.
+--host and --port can override .env for one invocation.
+--check validates the configuration, free port, checkout and target paths without changes.
 EOF
 }
 fail() { echo "ERROR: $*" >&2; exit 1; }
 
+SOURCE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+ENV_FILE="$SOURCE/.env"
+
+load_env() {
+  [[ -f $ENV_FILE ]] || return 0
+  local line key value
+  while IFS= read -r line || [[ -n $line ]]; do
+    [[ -z $line || $line == \#* ]] && continue
+    [[ $line == *=* ]] || fail "Invalid line in $ENV_FILE: $line"
+    key=${line%%=*}
+    value=${line#*=}
+    case $key in
+      PRINT_APPLIANCE_HOST) HOST=$value ;;
+      PRINT_APPLIANCE_PORT) PORT=$value ;;
+      *) fail "Unknown setting in $ENV_FILE: $key" ;;
+    esac
+  done < "$ENV_FILE"
+}
+
 HOST=''
-PORT=8082
+PORT=''
 CHECK=0
+load_env
 while (($#)); do
   case $1 in
     --host) (($# >= 2)) || fail 'Missing --host value.'; HOST=$2; shift 2 ;;
@@ -31,7 +52,8 @@ done
 # shellcheck disable=SC1091
 source /etc/os-release
 [[ $ID == debian && $VERSION_ID == 12 ]] || fail 'Debian 12 is required.'
-[[ -n $HOST ]] || fail 'Provide --host with an IPv4 assigned to this device.'
+[[ -n $HOST ]] || fail "Create $ENV_FILE from .env.example and set PRINT_APPLIANCE_HOST."
+[[ -n $PORT ]] || fail "Create $ENV_FILE from .env.example and set PRINT_APPLIANCE_PORT."
 [[ $PORT =~ ^[0-9]{4,5}$ ]] && ((10#$PORT >= 1024 && 10#$PORT <= 65535)) \
   || fail 'Port must be an integer from 1024 to 65535.'
 PORT=$((10#$PORT))
@@ -56,7 +78,6 @@ APP=/opt/print-appliance-secondary
 DATA=/var/lib/print-appliance-secondary
 UNIT=/etc/systemd/system/print-appliance-secondary.service
 ACCOUNT=print-appliance-secondary
-SOURCE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 for path in "$APP" "$DATA" "$UNIT" "$UNIT.d"; do
   [[ ! -e $path && ! -L $path ]] || fail "Already exists: $path. Refusing to overwrite an installation."
 done

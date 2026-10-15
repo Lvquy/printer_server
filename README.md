@@ -50,24 +50,38 @@ git clone https://github.com/Lvquy/printer_server.git
 cd /opt/printer_server
 ```
 
-### 3. Kiểm tra trước khi cài
+### 3. Tạo file cấu hình
 
 ```sh
-./install-secondary.sh --host PI_IP --port 8082 --check
+cp .env.example .env
 ```
 
-Ví dụ:
+```sh
+nano .env
+```
+
+Sửa hai giá trị trong file:
+
+```dotenv
+PRINT_APPLIANCE_HOST=192.168.0.123
+PRINT_APPLIANCE_PORT=8082
+```
+
+`PRINT_APPLIANCE_HOST` là IP LAN của Pi. File `.env` chỉ nằm trên Pi, đã được
+Git bỏ qua và không được đưa lên repository.
+
+### 4. Kiểm tra trước khi cài
 
 ```sh
-./install-secondary.sh --host 192.168.0.123 --port 8082 --check
+./install-secondary.sh --check
 ```
 
 Nếu thấy `Preflight passed`, tiếp tục bước cài đặt.
 
-### 4. Cài service
+### 5. Cài service
 
 ```sh
-./install-secondary.sh --host PI_IP --port 8082
+./install-secondary.sh
 ```
 
 Khi hiện câu hỏi xác nhận, gõ `y` rồi nhấn Enter.
@@ -75,7 +89,7 @@ Khi hiện câu hỏi xác nhận, gõ `y` rồi nhấn Enter.
 Script tạo mật khẩu quản trị mới và chỉ in mật khẩu đó một lần. Lưu ngay mật
 khẩu này.
 
-### 5. Khởi động và kiểm tra
+### 6. Khởi động và kiểm tra
 
 ```sh
 systemctl start print-appliance-secondary.service
@@ -93,11 +107,7 @@ active
 
 Mở trên trình duyệt trong cùng LAN:
 
-```text
-http://PI_IP:8082/
-```
-
-Ví dụ: `http://192.168.0.123:8082/`.
+Mở URL theo cấu hình trong `.env`, ví dụ: `http://192.168.0.123:8082/`.
 
 ## Cấu hình máy in và API key
 
@@ -109,40 +119,6 @@ Ví dụ: `http://192.168.0.123:8082/`.
 
 Mỗi API key chỉ được dùng với đúng máy in đã tạo ra nó. Có thể đổi key tại màn
 hình máy in khi cần.
-
-## Cập nhật sau khi sửa code
-
-Trên máy phát triển, commit và push code lên GitHub:
-
-```sh
-git add .
-```
-
-```sh
-git commit -m "Mô tả thay đổi"
-```
-
-```sh
-git push origin main
-```
-
-Sau đó SSH vào Pi và chạy:
-
-```sh
-cd /opt/print-appliance-secondary/source
-```
-
-```sh
-sudo ./update-secondary-from-git.sh --check
-```
-
-```sh
-sudo ./update-secondary-from-git.sh
-```
-
-Script tự lấy nhánh `main`, tạo môi trường Python mới, sao lưu dữ liệu,
-khởi động lại **chỉ** service cổng `8082` và kiểm tra HTTP. Không cần gõ `git
-pull` thủ công.
 
 ## Kiểm tra khi không vào được trang web
 
@@ -205,31 +181,8 @@ curl -sS "http://PI_IP:8082/api/v1/jobs" \
 - `sides`: `one-sided` hoặc `two-sided-long-edge`.
 - `scaling`: `fit`, `fill`, `none` hoặc `auto`.
 
-## Phát triển trên Mac
-
-Khi sửa giao diện React, build lại asset trước khi commit:
-
-```sh
-npm ci
-```
-
-```sh
-npm run build
-```
-
-Kiểm tra source:
-
-```sh
-uv run pytest
-```
-
-```sh
-uv run ruff check .
-```
-
 ## Tài liệu chi tiết
 
-- [Hướng dẫn cập nhật](docs/deploy-secondary.md)
 - [API](docs/api.md)
 - [Tùy chọn PDF](docs/print-options.md)
 - [Hướng dẫn kỹ thuật đầy đủ](docs/technical-report.md)
