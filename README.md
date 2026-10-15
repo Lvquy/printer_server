@@ -10,8 +10,7 @@ lịch sử lệnh in.
 
 ## Cài lần đầu trên Pi
 
-Các lệnh sau dành cho bản chạy song song ở cổng `8082`. Bản cũ ở cổng `8081`
-không bị thay đổi.
+Ứng dụng được cài và truy cập qua cổng `8082`.
 
 ### 1. SSH vào Pi
 
@@ -230,7 +229,7 @@ uv run ruff check .
 
 ## Tài liệu chi tiết
 
-- [Cập nhật bản cổng 8082](docs/deploy-secondary.md)
+- [Hướng dẫn cập nhật](docs/deploy-secondary.md)
 - [API](docs/api.md)
 - [Tùy chọn PDF](docs/print-options.md)
 - [Hướng dẫn kỹ thuật đầy đủ](docs/technical-report.md)
