@@ -5,7 +5,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: sudo ./update-secondary-from-git.sh [--branch main] [--check]
+Usage: sudo ./ci_cd.sh [--branch main] [--check]
 
 Fetch a branch from origin, build a fresh environment, and activate it for the
 configured service. --check only compares commits and checks
