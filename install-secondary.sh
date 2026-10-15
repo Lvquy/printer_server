@@ -61,8 +61,8 @@ source /etc/os-release
 [[ -n $PORT ]] || fail "Create $ENV_FILE from .env.example and set PRINT_APPLIANCE_PORT."
 [[ $SERVICE_NAME =~ ^[a-z][a-z0-9-]{0,30}$ ]] \
   || fail 'PRINT_APPLIANCE_SERVICE_NAME must use lowercase letters, digits and hyphens.'
-[[ ${#ADMIN_PASSWORD} -ge 12 && $ADMIN_PASSWORD != CHANGE_THIS* ]] \
-  || fail 'Set PRINT_APPLIANCE_ADMIN_PASSWORD to a private password of at least 12 characters.'
+[[ -n $ADMIN_PASSWORD && $ADMIN_PASSWORD != CHANGE_THIS* ]] \
+  || fail 'Set PRINT_APPLIANCE_ADMIN_PASSWORD in .env before installation.'
 ENV_MODE=$(stat -c '%a' "$ENV_FILE" 2>/dev/null || true)
 [[ -n $ENV_MODE ]] || fail "Create $ENV_FILE from .env.example before installation."
 (( (8#$ENV_MODE & 8#077) == 0 )) \
